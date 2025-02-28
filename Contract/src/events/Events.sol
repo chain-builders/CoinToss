@@ -7,5 +7,6 @@ library Events {
     event PoolCreated(uint poolId, uint256 entryFee, uint256 maxParticipants);
     event PlayerJoined(uint poolId, address playerThatJoined);
     event RoundCompleted(uint poolId, uint round, CoinToss.PlayerChoice);
+    event PoolCompleted(uint poolId, uint prizePool);
 }
 

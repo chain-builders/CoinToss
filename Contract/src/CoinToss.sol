@@ -135,9 +135,28 @@ contract CoinToss is Ownable {
         else {
             // Chainlink VRF to solve the randomness of picking a winning selection
         }
+        uint remainingPlayers = 0;
+        for (uint i = 0; i < pool.playersInPool.length; i++){
+            address playerAddressesInPool = pool.playersInPool[i];
+            Player storage player = pool.players[playerAddressesInPool];
+
+            if (!player.isEliminated && pool.roundParticipation[_round][playerAddressesInPool]) {
+                if (pool.roundSelection[_round][playerAddressesInPool] != winningSelection) {
+                    player.isEliminated = true;
+                } else {
+                    remainingPlayers++;
+                }
+            }
+        }
+
+        emit Events.RoundCompleted(_poolId, _round, winningSelection);
+
+        if (remainingPlayers <= 1) {
+            pool.status = PoolStatus.CLOSED;
+            emit Events.PoolCompleted(_poolId, pool.prizePool);
+        } else {
+            pool.currentRound++;
+        }
     }
-
-
-    //  emit Events.RoundCompleted(_poolId, _round, winningSelection);
 
 }
