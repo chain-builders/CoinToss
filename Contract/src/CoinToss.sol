@@ -114,6 +114,10 @@ contract CoinToss is Ownable {
         if (_choice == PlayerChoice.TAILS){
             pool.tailsCount[pool.currentRound]++;
         }
+
+        // TODO - Check if all remaining players have made their choices 
+
+        roundResult(_poolId, pool.currentRound); // or we check result in another function
     }
 
     function roundResult(uint _poolId, uint _round) internal poolExists(_poolId){
@@ -157,6 +161,25 @@ contract CoinToss is Ownable {
         } else {
             pool.currentRound++;
         }
+    }
+
+    function getPoolInfo(uint256 _poolId) external view poolExists(_poolId) returns (
+        uint entryFee,
+        uint maxParticipants,
+        uint currentParticipants,
+        uint prizePool,
+        uint currentRound,
+        PoolStatus status
+    ) {
+        Pool storage pool = pools[_poolId];
+        return (
+            pool.entryFee,
+            pool.maxParticipants,
+            pool.currentParticipants,
+            pool.prizePool,
+            pool.currentRound,
+            pool.status
+        );
     }
 
 }
