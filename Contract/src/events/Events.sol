@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 library Events {
-    event PoolCreated(uint256 poolId, uint256 entryFee, uint256 maxParticipants);
+    event PoolCreated(uint poolId, uint256 entryFee, uint256 maxParticipants);
+    event PlayerJoined(uint poolId, address playerThatJoined);
 }
 
