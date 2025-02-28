@@ -2,6 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./errors/Errors.sol";
+import "./events/Events.sol";
 
 contract CoinToss is Ownable(msg.sender) {
     enum UserChoice {
@@ -42,5 +44,20 @@ contract CoinToss is Ownable(msg.sender) {
         poolCount = 0;
     }
 
+    function createPool(uint _entryFee, uint _maxParticipants) external onlyOwner {
+        if(_entryFee == 0){
+            revert Errors.EntryFeeMustBeGreaterThanZero();
+        }
+        uint poolId = poolCount++;
+        pools[poolId] = Pool({
+            entryFee: _entryFee,
+            maxParticipants: _maxParticipants,
+            currentParticipants: 0,
+            prizePool: 0,
+            status: PoolStatus.OPENED
+        });
+
+        emit Events.PoolCreated(poolId, _entryFee, _maxParticipants);
+    }
 
 }
