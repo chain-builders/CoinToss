@@ -35,7 +35,7 @@ contract CoinToss is Ownable {
         uint currentRound;
         address[] playersInPool;
         mapping(uint => mapping(address => bool)) roundParticipation;
-        mapping(uint => mapping(address => Choice)) roundSelection;
+        mapping(uint => mapping(address => PlayerChoice)) roundSelection;
         mapping(uint => uint) headsCount;
         mapping(uint => uint) tailsCount;
         mapping(uint256 => bool) roundCompleted;
@@ -108,10 +108,10 @@ contract CoinToss is Ownable {
         pool.roundParticipation[pool.currentRound][msg.sender] == true;
         pool.roundSelection[pool.currentRound][msg.sender] = _choice; 
 
-        if (_choice == Choice.HEADS) {
+        if (_choice == PlayerChoice.HEADS) {
             pool.headsCount[pool.currentRound]++;
         } 
-        if {
+        if (_choice == PlayerChoice.TAILS){
             pool.tailsCount[pool.currentRound]++;
         }
     }
@@ -124,15 +124,20 @@ contract CoinToss is Ownable {
         uint headsCount = pool.headsCount[_round];
         uint tailsCount = pool.tailsCount[_round];
 
-        Choice winningSelection;
+        PlayerChoice winningSelection;
 
         if(headsCount < tailsCount){
-            winningSelection = Choice.HEADS;
-        } else if (tailsCount < headsCount){
-            winningSelection = Choice.TAILS;
-        } else {
+            winningSelection = PlayerChoice.HEADS;
+        } 
+        else if (tailsCount < headsCount){
+            winningSelection = PlayerChoice.TAILS;
+        } 
+        else {
             // Chainlink VRF to solve the randomness of picking a winning selection
         }
     }
+
+
+    //  emit Events.RoundCompleted(_poolId, _round, winningSelection);
 
 }
