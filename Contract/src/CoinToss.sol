@@ -32,6 +32,13 @@ contract CoinToss is Ownable {
         uint prizePool;
         PoolStatus status;
         mapping(address => Player) players;
+        uint currentRound;
+        address[] playersInPool;
+        mapping(uint => mapping(address => bool)) roundParticipation;
+        mapping(uint => mapping(address => Choice)) roundSelection;
+        mapping(uint => uint) headsCount;
+        mapping(uint => uint) tailsCount;
+        mapping(uint256 => bool) roundCompleted;
     }
 
     uint poolCount;
@@ -39,7 +46,7 @@ contract CoinToss is Ownable {
    
     
 
-    modifier poolExists(uint256 _poolId) {
+    modifier poolExists(uint _poolId) {
         require(_poolId < poolCount, "Pool does not exist");
         _;
     }
@@ -61,9 +68,11 @@ contract CoinToss is Ownable {
         newPool.currentParticipants = 0;
         newPool.prizePool = 0;
         newPool.status = PoolStatus.OPENED;
+        newPool.currentRound = 1;
         
         emit Events.PoolCreated(poolId, _entryFee, _maxParticipants);
     }
+
     function joinPool(uint _poolId) external payable poolExists(_poolId){
         Pool storage pool = pools[_poolId];
         require(pool.status == PoolStatus.OPENED, "The Pool is not yet opened for participation");
@@ -76,6 +85,7 @@ contract CoinToss is Ownable {
         
         pool.prizePool += msg.value;
         pool.currentParticipants++;
+        pool.playersInPool.push(msg.sender);
         newPlayer.choice = PlayerChoice.NONE;
         newPlayer.isEliminated = false;
         newPlayer.hasClaimed = false;
@@ -86,5 +96,26 @@ contract CoinToss is Ownable {
 
         emit Events.PlayerJoined(_poolId, newPlayer.playerAddress);
     }
+
+    function makeSelection(uint _poolId, PlayerChoice _choice) external poolExists(_poolId){
+        Pool storage pool = pools[_poolId];
+        Player storage player = pool.players[msg.sender];
+
+        require(pool.status == PoolStatus.ACTIVE, "Pool has to be active");
+        require(!player.isEliminated, "Player is eliminated");
+        require(!pool.roundParticipation[pool.currentRound][msg.sender], "Already made a selection for this round");
+
+        pool.roundParticipation[pool.currentRound][msg.sender] == true;
+        pool.roundSelection[pool.currentRound][msg.sender] = _choice; 
+
+        if (_choice == Choice.HEADS) {
+            pool.headsCount[pool.currentRound]++;
+        } 
+        if {
+            pool.tailsCount[pool.currentRound]++;
+        }
+    }
+
+    
 
 }
