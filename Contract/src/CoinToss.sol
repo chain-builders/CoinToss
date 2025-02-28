@@ -116,6 +116,23 @@ contract CoinToss is Ownable {
         }
     }
 
-    
+    function roundResult(uint _poolId, uint _round) internal poolExists(_poolId){
+        Pool storage pool = pools[_poolId];
+        require(pool.status == PoolStatus.ACTIVE, "Pool must be active");
+        require(!pool.roundCompleted[_round], "Round already completed");
+
+        uint headsCount = pool.headsCount[_round];
+        uint tailsCount = pool.tailsCount[_round];
+
+        Choice winningSelection;
+
+        if(headsCount < tailsCount){
+            winningSelection = Choice.HEADS;
+        } else if (tailsCount < headsCount){
+            winningSelection = Choice.TAILS;
+        } else {
+            // Chainlink VRF to solve the randomness of picking a winning selection
+        }
+    }
 
 }
