@@ -10,21 +10,13 @@ import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 //   RainbowKitProvider,
 // } from '@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
-import {
-  mainnet,
-  polygon,
-  optimism,
-  arbitrum,
-  base,
-  sepolia,
-} from "wagmi/chains";
+import { coreDao } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
 const config = createConfig({
-  chains: [mainnet, sepolia],
+  chains: [coreDao],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [coreDao.id]: http(),
   },
 });
 
