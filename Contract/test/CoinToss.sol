@@ -52,6 +52,10 @@ contract CoinTossTest is Test {
     
         vm.startPrank(alice);
         coinToss.joinPool{value: ENTRY_FEE}(0);
+
+        (uint entryFee, uint maxParticipants, uint currentParticipants, uint prizePool, uint currentRound, CoinToss.PoolStatus status) = coinToss.getPoolInfo(0);
+        assertEq(currentParticipants, 1);
+        assertEq(prizePool, ENTRY_FEE);
     
         vm.stopPrank();
     
