@@ -1,16 +1,19 @@
 from django.db import models
 
-# Create your models here.
+
 class Pool(models.Model):
-  id = models.CharField(max_length=255)
-  stake = models.IntegerField(null=False)
-  num_players = models.IntegerField(null=False)
-  is_private = models.BooleanField(null=False)
-  is_active = models.BooleanField(null=False)
-  date_created = models.DateTimeField(null=False, auto_now_add=True)
+  pool_id = models.PositiveIntegerField(unique=True)
+  tx_hash = models.CharField(max_length=66) 
+  entry_fee = models.BigIntegerField(help_text="Entry fee in wei")
+  max_participants = models.PositiveIntegerField()
+  created_at = models.DateTimeField(auto_now_add=True)
+  updated_at = models.DateTimeField(auto_now=True)
 
   def __str__(self):
     return self.id
+
+  class Meta:
+        ordering = ['-created_at']
 
 
 class Player(models.Model):
