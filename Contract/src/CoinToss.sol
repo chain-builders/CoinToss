@@ -41,7 +41,7 @@ contract CoinToss is Ownable {
         mapping(uint256 => bool) roundCompleted;
     }
 
-    uint poolCount;
+    uint public poolCount;
     mapping(uint => Pool) pools;
    
     

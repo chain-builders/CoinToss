@@ -4,6 +4,7 @@ import RenderGameView from "../components/MyPools";
 import { formatEther } from "viem";
 
 import { PoolInfo, usePoolInfo, PoolStatus } from "../hooks/usePoolInfo";
+import { usePoolCount } from "../hooks/usePoolCount";
 
 // const poolStatusNames = {
 //   [PoolStatus.OPENED]: "Open",
@@ -31,8 +32,34 @@ const MinorityGame = ({ poolId }: PoolCard) => {
   const [showGameView, setShowGameView] = useState(false);
   const [selectedPool, setSelectedPool] = useState<PoolsProps | null>(null);
 
-  const { data } = usePoolInfo(0);
-  console.log("===>", data);
+  const { data, isLoading, isError } = usePoolCount();
+
+  if (isLoading) {
+    console.log("loadingggggg");
+  }
+  if (!data) {
+    console.log("no data");
+  }
+
+  // const { data, isLoading, isError } = usePoolInfo(0);
+
+  // // Debug what's happening with the request
+  // console.log("Pool info data:", data);
+  // console.log("Loading:", isLoading);
+  // console.log("Error:", isError);
+
+  // // Wait for data to be loaded before trying to use it
+  // if (isLoading) {
+  //   console.log("Is loading....");
+  // }
+  // if (isError) {
+  //   console.log("Error loading pools");
+  // }
+  // if (!data) {
+  //   console.log("No data");
+  // }
+
+  // // Now data should be available for use
   // const {
   //   entryFee,
   //   maxParticipants,
@@ -40,7 +67,8 @@ const MinorityGame = ({ poolId }: PoolCard) => {
   //   prizePool,
   //   currentRound,
   //   status,
-  // } = data;
+  // } = data as PoolInfo;
+  // console.log("yes please", status);
 
   const myPools = [
     {
@@ -181,6 +209,13 @@ const MinorityGame = ({ poolId }: PoolCard) => {
       ) : (
         RenderGameView()
       )}
+      <p>Entry Fee: {formatEther(entryFee)} ETH</p>
+      <p>
+        Players: {currentParticipants.toString()} / {maxParticipants.toString()}
+      </p>
+      <p>Prize Pool: {formatEther(prizePool)} ETH</p>
+      <p>Current Round: {currentRound.toString()}</p>
+      <p>Status: {PoolStatus[status]}</p>
     </div>
   );
 };
