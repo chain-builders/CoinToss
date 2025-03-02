@@ -193,6 +193,12 @@ contract CoinToss is Ownable {
 
          if (remainingPlayers <= pool.maxWinners || remainingPlayers <= 1) {
             pool.status = PoolStatus.CLOSED;
+            for (uint i = 0; i < pool.playersInPool.length; i++) {
+                address playerAddress = pool.playersInPool[i];
+                if (!pool.players[playerAddress].isEliminated) {
+                pool.finalWinners.push(playerAddress);
+            }
+    }
             emit Events.PoolCompleted(_poolId, pool.prizePool);
         } else {
             pool.currentRound++;
