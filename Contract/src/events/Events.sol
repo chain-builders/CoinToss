@@ -10,5 +10,6 @@ library Events {
     event PoolCompleted(uint poolId, uint prizePool);
     event RoundWinners(uint poolId, uint round, address[] roundWinners);
     event RoundLosers(uint poolId, uint round, address[] roundWinners);
+    event PrizeClaimed(uint poolId, address player, uint prizeAmount);
 }
 
