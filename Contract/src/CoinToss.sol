@@ -39,10 +39,14 @@ contract CoinToss is Ownable {
         mapping(uint => uint) headsCount;
         mapping(uint => uint) tailsCount;
         mapping(uint256 => bool) roundCompleted;
+        uint maxWinners;
+        uint currentActiveParticipants;
+        mapping(uint => address[]) roundWinners;
+        mapping(uint => address[]) roundLosers;
     }
 
     uint public poolCount;
-    mapping(uint => Pool) pools;
+    mapping(uint => Pool) public pools;
    
     
 
@@ -69,6 +73,13 @@ contract CoinToss is Ownable {
         newPool.prizePool = 0;
         newPool.status = PoolStatus.OPENED;
         newPool.currentRound = 1;
+
+        if(_maxParticipants <= 10){
+            newPool.maxWinners = _maxParticipants > 1 ? 2 : 1;
+        }
+        else {
+            newPool.maxWinners = 3;
+        }
         
         emit Events.PoolCreated(poolId, _entryFee, _maxParticipants);
     }
@@ -92,6 +103,7 @@ contract CoinToss is Ownable {
 
         if (pool.currentParticipants == pool.maxParticipants) {
             pool.status = PoolStatus.ACTIVE;
+            pool.currentActiveParticipants = pool.currentParticipants;
         }
 
         emit Events.PlayerJoined(_poolId, newPlayer.playerAddress);
@@ -105,7 +117,7 @@ contract CoinToss is Ownable {
         require(!player.isEliminated, "Player is eliminated");
         require(!pool.roundParticipation[pool.currentRound][msg.sender], "Already made a selection for this round");
 
-        pool.roundParticipation[pool.currentRound][msg.sender] == true;
+        pool.roundParticipation[pool.currentRound][msg.sender] = true;
         pool.roundSelection[pool.currentRound][msg.sender] = _choice; 
 
         if (_choice == PlayerChoice.HEADS) {
@@ -115,9 +127,19 @@ contract CoinToss is Ownable {
             pool.tailsCount[pool.currentRound]++;
         }
 
-        // TODO - Check if all remaining players have made their choices 
+        bool allPlayersSelected = true;
+        for (uint i = 0; i < pool.playersInPool.length; i++) {
+            address playerAddress = pool.playersInPool[i];
+            if (!pool.players[playerAddress].isEliminated && 
+                !pool.roundParticipation[pool.currentRound][playerAddress]) {
+                allPlayersSelected = false;
+                break;
+            }
+        }
 
-        roundResult(_poolId, pool.currentRound); // or we check result in another function
+        if (allPlayersSelected) {
+            roundResult(_poolId, pool.currentRound); 
+        }
     }
 
     function roundResult(uint _poolId, uint _round) internal poolExists(_poolId){
@@ -138,24 +160,36 @@ contract CoinToss is Ownable {
         } 
         else {
             // Chainlink VRF to solve the randomness of picking a winning selection
+            winningSelection = PlayerChoice.HEADS;
         }
+
+        delete pool.roundWinners[_round];
+        delete pool.roundLosers[_round];
+
         uint remainingPlayers = 0;
         for (uint i = 0; i < pool.playersInPool.length; i++){
-            address playerAddressesInPool = pool.playersInPool[i];
-            Player storage player = pool.players[playerAddressesInPool];
+            address playerAddressInPool = pool.playersInPool[i];
+            Player storage player = pool.players[playerAddressInPool];
 
-            if (!player.isEliminated && pool.roundParticipation[_round][playerAddressesInPool]) {
-                if (pool.roundSelection[_round][playerAddressesInPool] != winningSelection) {
+            if (!player.isEliminated && pool.roundParticipation[_round][playerAddressInPool]) {
+                if (pool.roundSelection[_round][playerAddressInPool] != winningSelection) {
                     player.isEliminated = true;
+                    pool.currentActiveParticipants--;
+                    pool.roundLosers[_round].push(playerAddressInPool);
                 } else {
                     remainingPlayers++;
+                    pool.roundWinners[_round].push(playerAddressInPool);
                 }
             }
         }
 
+        pool.roundCompleted[_round] = true;
         emit Events.RoundCompleted(_poolId, _round, winningSelection);
+        emit Events.RoundWinners(_poolId, _round, pool.roundWinners[_round]);
+        emit Events.RoundLosers(_poolId, _round, pool.roundLosers[_round]);
 
-        if (remainingPlayers <= 1) {
+
+         if (remainingPlayers <= pool.maxWinners || remainingPlayers <= 1) {
             pool.status = PoolStatus.CLOSED;
             emit Events.PoolCompleted(_poolId, pool.prizePool);
         } else {
@@ -180,6 +214,29 @@ contract CoinToss is Ownable {
             pool.currentRound,
             pool.status
         );
+    }
+
+    function getRoundWinners(uint _poolId, uint _round) external view poolExists(_poolId) returns (address[] memory) {
+        require(_round <= pools[_poolId].currentRound, "Round does not exist");
+        return pools[_poolId].roundWinners[_round];
+    }
+
+   
+    function getRoundLosers(uint _poolId, uint _round) external view poolExists(_poolId) returns (address[] memory) {
+        require(_round <= pools[_poolId].currentRound, "Round does not exist");
+        return pools[_poolId].roundLosers[_round];
+    }
+
+    function didPlayerWinRound(uint _poolId, uint _round, address _playerAddress) external view poolExists(_poolId) returns (bool) {
+        require(_round <= pools[_poolId].currentRound, "Round does not exist");
+        
+        address[] memory winners = pools[_poolId].roundWinners[_round];
+        for (uint i = 0; i < winners.length; i++) {
+            if (winners[i] == _playerAddress) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
