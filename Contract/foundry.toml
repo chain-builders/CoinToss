@@ -8,3 +8,4 @@ libs = ["lib"]
 [rpc_endpoints]
 core = "${CORE_TESTNET_RPC_URL}"
 core_explorer="${CORE_EXPLORER}"
+sepolia="${SEPOLIA}"
