@@ -7,7 +7,7 @@ from .models import Pool
 
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])  
+# @permission_classes([IsAdminUser])  
 def create_pool(request):
     entry_fee = int(request.data.get('entry_fee')) 
     max_participants = int(request.data.get('max_participants'))
@@ -27,7 +27,6 @@ def create_pool(request):
                 entry_fee=entry_fee,
                 max_participants=max_participants,
                 tx_hash=result['tx_hash'],
-                status='OPENED'
             )
             
             return Response({
