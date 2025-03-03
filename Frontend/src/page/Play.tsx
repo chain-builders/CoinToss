@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface GameStats {
   totalPlayers: number;
@@ -32,11 +33,12 @@ interface NotificationProps {
 }
 
 const PlayGame = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("explore");
   const [selectedPool, setSelectedPool] = useState<any>(null);
   const [showGameView, setShowGameView] = useState(false);
   const [gameStage, setGameStage] = useState("choice");
-  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerActive, setIsTimerActive] = useState(true); // Timer starts immediately
   const [choice, setChoice] = useState<string | null>(null);
   const [round, setRound] = useState(1);
   const [timer, setTimer] = useState(10);
@@ -62,8 +64,8 @@ const PlayGame = () => {
 
   // Handle player choice selection
   const handleMakeChoice = (selected: string) => {
+    if (!isTimerActive) return; // Prevent making a choice after the timer ends
     setChoice(selected);
-    handleStartTimer();
     startCoinAnimation();
   };
 
@@ -93,7 +95,16 @@ const PlayGame = () => {
   const handleRoundEnd = () => {
     stopCoinAnimation();
     
-    if (!choice) return;
+    if (!choice) {
+      // If no choice was made, eliminate the player
+      setGameStage("results");
+      showNotification(false, "Eliminated!", "You didn't make a choice in time!");
+      setTimeout(() => {
+        setGameStage("gameOver");
+        setGameOver(true);
+      }, 3000);
+      return;
+    }
     
     const totalPlayers = gameStats.remainingPlayers;
     const players = generateMockPlayers(totalPlayers, choice);
@@ -151,14 +162,11 @@ const PlayGame = () => {
           setRound(round + 1);
           setGameStage("choice");
           setChoice(null);
+          setTimer(10); // Reset timer for the next round
+          setIsTimerActive(true); // Restart the timer
         }, 2000);
       }
     }, 3000);
-  };
-
-  // Start the timer on click
-  const handleStartTimer = () => {
-    setIsTimerActive(true);
   };
 
   // Start coin flipping animation
@@ -168,7 +176,7 @@ const PlayGame = () => {
     if (coinFlipInterval.current) clearInterval(coinFlipInterval.current);
     
     coinFlipInterval.current = setInterval(() => {
-      setCoinRotation(prev => (prev + 36) % 360);
+      setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
   };
 
@@ -192,7 +200,7 @@ const PlayGame = () => {
     });
 
     setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
+      setNotification((prev) => ({ ...prev, isVisible: false }));
     }, 4000);
   };
 
@@ -209,7 +217,6 @@ const PlayGame = () => {
     } else if (timer === 0) {
       setIsTimerActive(false); // Stop the timer when it reaches 0
       handleRoundEnd();
-      setTimer(10);
     }
   }, [isTimerActive, timer]);
 
@@ -247,7 +254,7 @@ const PlayGame = () => {
           {!notification.isSuccess && (
             <button 
               className="mt-6 px-6 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-bold transition-colors"
-              onClick={() => setNotification(prev => ({ ...prev, isVisible: false }))}
+              onClick={() => setNotification((prev) => ({ ...prev, isVisible: false }))}
             >
               Close
             </button>
@@ -301,9 +308,10 @@ const PlayGame = () => {
               });
               setPlayerHistory([]);
               setWinners([]);
+              navigate("/explore");
             }}
           >
-            Play Again
+            Back to pools
           </button>
         </div>
       </div>
@@ -381,7 +389,7 @@ const PlayGame = () => {
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={choice !== null || isCoinFlipping}
+            disabled={!isTimerActive || isCoinFlipping}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">🪙</div>
@@ -415,7 +423,7 @@ const PlayGame = () => {
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={choice !== null || isCoinFlipping}
+            disabled={!isTimerActive || isCoinFlipping}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">💰</div>
@@ -533,3 +541,8 @@ const PlayGame = () => {
 };
 
 export default PlayGame;
+
+
+
+
+

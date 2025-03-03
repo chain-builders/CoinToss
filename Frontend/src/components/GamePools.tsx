@@ -48,7 +48,7 @@ const PoolsInterface: React.FC = () => {
     address: address,
     chainId: 1114, 
   });
-  
+
   useEffect(() => {
     const samplePools: Pool[] = [
       { id: 1, name: "High Rollers", status: "filling", stake: "2 core", players: "12/16", timeLeft: "03:42", playersCount: 12, maxPlayers: 16, percentFull: 75, popularity: 'high', previousWinners: 142, averageTime: "4m" },
@@ -168,7 +168,7 @@ const PoolsInterface: React.FC = () => {
 
       // Show confirmation notification
       showPoolNotification(`Successfully entered ${selectedPool.name} pool!`);
-
+      closeModal()
       // Would navigate to game view here
     }, 1500);
   };
@@ -434,7 +434,7 @@ const PoolsInterface: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-400">Your Balance</p>
-                  <p className="text-xl font-bold text-green-400">${userBalance}</p>
+                  <p className="text-xl font-bold text-green-400">{balanceData?.formatted} {balanceData?.symbol}</p>
                 </div>
               </div>
               <div className="p-3 bg-gray-800 rounded-lg mb-4 flex items-center">

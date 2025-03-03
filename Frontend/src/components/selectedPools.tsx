@@ -82,7 +82,7 @@ const RenderMyPoolsTab = () => {
   }
 
   return featuredPool.map((pools) => (
-    <div className="grid grid-cols-2">
+    <div className="grid grid-rows-1">
       <motion.div
         className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
@@ -124,15 +124,7 @@ const RenderMyPoolsTab = () => {
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="text-xs text-gray-400 mb-1">Pool filling up</div>
-          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-yellow-500"
-              style={{ width: `${pools.percentFull}%` }}
-            />
-          </div>
-        </div>
+        
 
         <button
           className="mt-4 bg-green-500 hover:bg-green-800 text-black font-bold py-2 px-4 rounded-lg w-full transition-colors"
