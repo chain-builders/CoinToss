@@ -41,7 +41,7 @@ contract CoinToss is Ownable {
         mapping(uint256 => bool) roundCompleted;
     }
 
-    uint poolCount;
+    uint  poolCount;
     mapping(uint => Pool) pools;
    
     
@@ -115,9 +115,9 @@ contract CoinToss is Ownable {
             pool.tailsCount[pool.currentRound]++;
         }
 
-        // TODO - Check if all remaining players have made their choices 
+       
 
-        roundResult(_poolId, pool.currentRound); // or we check result in another function
+        roundResult(_poolId, pool.currentRound); 
     }
 
     function roundResult(uint _poolId, uint _round) internal poolExists(_poolId){
@@ -137,7 +137,7 @@ contract CoinToss is Ownable {
             winningSelection = PlayerChoice.TAILS;
         } 
         else {
-            // Chainlink VRF to solve the randomness of picking a winning selection
+           
         }
         uint remainingPlayers = 0;
         for (uint i = 0; i < pool.playersInPool.length; i++){
