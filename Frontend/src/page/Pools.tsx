@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from "react";
+
 
 import RenderGameView from "../components/MyPools";
 import PoolsInterface from "../components/GamePools";
@@ -25,6 +27,7 @@ const MinorityGame = () => {
     functionName: "getPoolInfo",
     args: [1],
   });
+
 
 
 

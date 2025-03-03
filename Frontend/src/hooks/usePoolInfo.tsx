@@ -1,4 +1,3 @@
-import { ethers } from "ethers";
 import ABI from "../utils/contract/CoinToss.sol/CoinToss.json";
 
 import { useReadContract } from "wagmi";
@@ -20,7 +19,7 @@ export type PoolInfo = {
 
 export function usePoolInfo(poolId: number) {
   return useReadContract({
-    address: "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9",
+    address: "0xd57F1C354E9A2eEC4a4DDCEb49e86b59F0169730",
     abi: ABI.abi,
     functionName: "getPoolInfo",
     args: [BigInt(poolId)],

@@ -1,7 +1,7 @@
 import { RouterProvider } from "react-router-dom";
 import router from "./router";
 import "./App.css";
-// import { http, createConfig } from "wagmi";
+
 import "@rainbow-me/rainbowkit/styles.css";
 
 import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
@@ -25,6 +25,7 @@ const core = {
     public: {
       http: ["https://rpc.test2.btcs.network/"],
     },
+
   },
   blockExplorers: {
     default: { name: "Core Explorer", url: "https://scan.test2.btcs.network/" },
