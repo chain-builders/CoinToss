@@ -13,6 +13,7 @@
     "@rainbow-me/rainbowkit": "^2.2.4",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
+    "framer-motion": "^12.4.7",
     "lucide-react": "^0.476.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

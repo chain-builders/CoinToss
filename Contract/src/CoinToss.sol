@@ -47,8 +47,10 @@ contract CoinToss is Ownable {
         bool prizeClaimed;
     }
 
+
     uint public poolCount;
     mapping(uint => Pool) public pools;
+
    
     
 
@@ -128,7 +130,6 @@ contract CoinToss is Ownable {
         if (_choice == PlayerChoice.TAILS){
             pool.tailsCount[pool.currentRound]++;
         }
-
         bool allPlayersSelected = true;
         for (uint i = 0; i < pool.playersInPool.length; i++) {
             address playerAddress = pool.playersInPool[i];
@@ -161,8 +162,10 @@ contract CoinToss is Ownable {
             winningSelection = PlayerChoice.TAILS;
         } 
         else {
+
             // Chainlink VRF to solve the randomness of picking a winning selection
             winningSelection = PlayerChoice.HEADS;
+
         }
 
         delete pool.roundWinners[_round];
