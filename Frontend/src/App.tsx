@@ -1,34 +1,48 @@
 import { RouterProvider } from "react-router-dom";
 import router from "./router";
 import "./App.css";
-import { http, createConfig } from "wagmi";
+// import { http, createConfig } from "wagmi";
 import "@rainbow-me/rainbowkit/styles.css";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 
-// import {
-//   getDefaultConfig,
-//   RainbowKitProvider,
-// } from '@rainbow-me/rainbowkit";
+import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
+
 import { WagmiProvider } from "wagmi";
-import {
-  mainnet,
-  polygon,
-  optimism,
-  arbitrum,
-  base,
-  sepolia,
-} from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
-const config = createConfig({
-  chains: [mainnet, sepolia],
-  transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+const core = {
+  id: 1114,
+  name: "Core Testnet",
+  network: "core-testnet",
+  nativeCurrency: {
+    name: "tCORE",
+    symbol: "tCORE2",
+    decimals: 18,
   },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.test2.btcs.network/"],
+    },
+    public: {
+      http: ["https://rpc.test2.btcs.network/"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Core Explorer", url: "https://scan.test2.btcs.network/" },
+  },
+  testnet: true,
+};
+
+const config = getDefaultConfig({
+  appName: "CoinToss",
+  projectId: "f6944e67672a59c2ac32f0ec4777dfd8",
+  chains: [core],
 });
 
+
 function App() {
+
+  
+
   const queryClient = new QueryClient();
 
   return (

@@ -1,147 +1,47 @@
-import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+
 import RenderGameView from "../components/MyPools";
-import { formatEther } from "viem";
+import PoolsInterface from "../components/GamePools";
+import RenderMyPoolsTab from "../components/selectedPools";
+import { useReadContract } from "wagmi";
+import contractABI from "./../utils/contract/CoinToss.sol/CoinToss.json";
 
-import { PoolInfo, usePoolInfo, PoolStatus } from "../hooks/usePoolInfo";
-
-// const poolStatusNames = {
-//   [PoolStatus.OPENED]: "Open",
-//   [PoolStatus.ACTIVE]: "Active",
-//   [PoolStatus.CLOSED]: "Closed",
-// };
-
-type PoolCard = {
-  poolId: number;
-};
-
-interface PoolsProps {
-  id: number;
-  name: string;
-  stake: string;
-  players: string;
-  timeLeft: string;
-  status: string;
-  isOwner?: boolean;
-  round?: number;
-}
-
-const MinorityGame = ({ poolId }: PoolCard) => {
+const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");
   const [showGameView, setShowGameView] = useState(false);
-  const [selectedPool, setSelectedPool] = useState<PoolsProps | null>(null);
+  
+ 
 
-  const { data } = usePoolInfo(0);
-  console.log("===>", data);
-  // const {
-  //   entryFee,
-  //   maxParticipants,
-  //   currentParticipants,
-  //   prizePool,
-  //   currentRound,
-  //   status,
-  // } = data;
+  console.log(contractABI);
 
-  const myPools = [
-    {
-      id: 5,
-      name: "Friends Circle",
-      stake: status,
-      players: "5/8",
-      timeLeft: "25:14",
-      status: "filling",
-      isOwner: true,
-    },
-    {
-      id: 6,
-      name: "Weekend Warriors",
-      stake: "100 CORE",
-      players: "8/8",
-      timeLeft: "LIVE",
-      status: "active",
-      round: 2,
-    },
-  ];
+  const {
+    data: poolInfo,
+    isError,
+    isLoading,
+    error,
+  } = useReadContract({
+    address: "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9", // 0xC1787fcf4feBb9C9cE680294aF53F5AD709Ad23d.
+    abi: contractABI.abi,
+    functionName: "getPoolInfo",
+    args: [1],
+  });
 
-  const handlePoolSelect = (pool: PoolsProps) => {
-    setSelectedPool(pool);
-  };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "filling":
-        return "text-yellow-500";
-      case "starting":
-        return "text-green-500";
-      case "active":
-        return "text-blue-500";
-      default:
-        return "text-gray-500";
+
+  console.log(poolInfo, isLoading);
+
+  useEffect(() => {
+    if (poolInfo) {
+      console.log("Fetched pool:", poolInfo);
+    } else {
+      console.log(error);
     }
-  };
+  }, [poolInfo, isError, error]);
 
-  const renderMyPoolsTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold">My Active Pools</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {myPools.map((pool) => (
-          <div
-            key={pool.id}
-            className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
-              pool.status === "active" ? "border-blue-500" : ""
-            }`}
-            onClick={() => {
-              handlePoolSelect(pool);
-              if (pool.status === "active") setShowGameView(true);
-            }}
-          >
-            <div className="flex justify-between">
-              <h3 className="font-bold flex items-center">
-                {pool.name}
-                {pool.isOwner && (
-                  <span className="ml-2 text-xs bg-gray-700 px-2 py-1 rounded">
-                    Owner
-                  </span>
-                )}
-              </h3>
-              <span
-                className={`text-sm font-medium ${getStatusColor(pool.status)}`}
-              >
-                {pool.status === "active"
-                  ? "Live: Round " + pool.round
-                  : pool.status}
-              </span>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <p className="text-gray-400">Stake</p>
-                <p className="font-medium">{pool.stake}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">Players</p>
-                <p className="font-medium">{pool.players}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">
-                  {pool.status === "active" ? "Status" : "Time Left"}
-                </p>
-                <p className="font-medium">{pool.timeLeft}</p>
-              </div>
-            </div>
+ 
 
-            {pool.status === "active" && (
-              <div className="mt-3 pt-3 border-t border-gray-800">
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md flex items-center justify-center">
-                  Continue Game <ArrowRight size={16} className="ml-2" />
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6 w-full">
@@ -172,11 +72,7 @@ const MinorityGame = ({ poolId }: PoolCard) => {
             </div>
           </div>
 
-          {activeTab === "explore" ? (
-            <h2>Explore pools</h2>
-          ) : (
-            renderMyPoolsTab()
-          )}
+          {activeTab === "explore" ? <PoolsInterface/> : <RenderMyPoolsTab/>}
         </>
       ) : (
         RenderGameView()

@@ -23,6 +23,6 @@ export function usePoolInfo(poolId: number) {
     address: "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9",
     abi: ABI.abi,
     functionName: "getPoolInfo",
-    args: [ethers.getBigInt(poolId)],
+    args: [BigInt(poolId)],
   });
 }

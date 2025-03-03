@@ -1,6 +1,9 @@
-export const alchemyKey = process.env.ALCHEMY_API_KEY;
+// import dotenv from "dotenv";
+// dotenv.config();
 
-export const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+export const alchemyKey ='aGBE2fyTzwbkZ87yzFAUS6EE'
+
+export const contractAddress = "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9";
 
 
 if (!alchemyKey || !contractAddress) {

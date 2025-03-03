@@ -11,7 +11,6 @@ const router=createBrowserRouter(
              <Route path="explore" element={<MinorityGame/>}/>
              <Route path="playgame" element={<PlayGame/>}/>
         </Route>
-
     )
 )
 
