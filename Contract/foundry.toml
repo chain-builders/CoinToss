@@ -5,6 +5,9 @@ libs = ["lib"]
 priority_fee = 2000000000000000
 gas_price = 1000000000000000
 
+solc_version = "0.8.20"  
+[etherscan]
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 [rpc_endpoints]
