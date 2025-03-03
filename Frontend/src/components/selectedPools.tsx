@@ -49,7 +49,7 @@ const RenderMyPoolsTab = () => {
       id: 1,
       name: "High Rollers",
       status: "filling",
-      stake: "$100",
+      stake: "2 core",
       players: "12/16",
       timeLeft: "03:42",
       playersCount: 12,
@@ -59,20 +59,7 @@ const RenderMyPoolsTab = () => {
       previousWinners: 142,
       averageTime: "4m",
     },
-    {
-      id: 2,
-      name: "Quick Play",
-      status: "starting",
-      stake: "$25",
-      players: "14/16",
-      timeLeft: "01:15",
-      playersCount: 14,
-      maxPlayers: 16,
-      percentFull: 87,
-      popularity: "trending",
-      previousWinners: 358,
-      averageTime: "3m",
-    },
+  
   ];
 
   const handlePlay=()=>{
@@ -82,7 +69,7 @@ const RenderMyPoolsTab = () => {
   }
 
   return featuredPool.map((pools) => (
-    <div className="grid grid-rows-1">
+    <div className="grid md:grid-cols-2">
       <motion.div
         className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
@@ -127,7 +114,7 @@ const RenderMyPoolsTab = () => {
         
 
         <button
-          className="mt-4 bg-green-500 hover:bg-green-800 text-black font-bold py-2 px-4 rounded-lg w-full transition-colors"
+          className="mt-4 bg-gradient-to-r from-yellow-600 to-red-600 text-black font-bold py-2 px-4 rounded-lg w-full transition-colors"
             onClick={() => handlePlay()}
         >
           Play

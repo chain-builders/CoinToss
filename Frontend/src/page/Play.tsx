@@ -295,7 +295,7 @@ const PlayGame = () => {
           <button 
             className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors"
             onClick={() => {
-              setGameOver(false);
+              setGameOver(true);
               setRound(1);
               setGameStage("choice");
               setChoice(null);
@@ -507,7 +507,7 @@ const PlayGame = () => {
       <GameOverScreen />
       
       {/* Additional CSS for animations */}
-      <style jsx>{`
+      {/* <style jsx>{`
         @keyframes scale-in-center {
           0% {
             transform: scale(0);
@@ -535,7 +535,7 @@ const PlayGame = () => {
         .shadow-glow-gold {
           box-shadow: 0 0 15px 5px rgba(234, 179, 8, 0.3);
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 };
