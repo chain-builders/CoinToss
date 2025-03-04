@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useAccount, useReadContract, useBalance } from "wagmi";
-
+import { useAccount, useReadContract, useBalance,useWriteContract, useWaitForTransactionReceipt  } from "wagmi";
+import { parseEther } from "viem";
 
 import {
   Sparkles,
@@ -64,11 +64,14 @@ const PoolsInterface: React.FC = () => {
   const [featuredPool, setFeaturedPool] = useState<Pool | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
+  const [joining, setJoining] = useState(false);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([
     { name: "Player429", amount: "1,240", time: "2m ago" },
     { name: "CryptoKing", amount: "450", time: "5m ago" },
     { name: "LuckyStrike", amount: "2,100", time: "8m ago" },
   ]);
+
+  const { writeContract,data: hash,isPending: isWritePending, error,} = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
 
@@ -105,18 +108,6 @@ const PoolsInterface: React.FC = () => {
       currentActiveParticipants: Number(data[7]),
     };
   };
-
-
-  const {
-    data: poolData,
-    isLoading: loading,
-    isError: error,
-  } = useReadContract({
-    address: CORE_CONTRACT_ADDRESS,
-    abi: ABI.abi,
-    functionName: "getPoolInfo",
-    args: [1],
-  });
 
   
   // all pools
@@ -157,86 +148,10 @@ const PoolsInterface: React.FC = () => {
   }, [allPools]);
 
 
-  console.log(allPools[1].currentParticipants)
+  console.log(allPools)
   
 
-  useEffect(() => {
-    const samplePools: Pool[] = [
-      {
-        id: 1,
-        name: "High Rollers",
-        status: "filling",
-        stake: "2 core",
-        players: "12/16",
-        timeLeft: "03:42",
-        playersCount: 12,
-        maxPlayers: 16,
-        percentFull: 75,
-        popularity: "high",
-        previousWinners: 142,
-        averageTime: "4m",
-      },
-      {
-        id: 2,
-        name: "Quick Play",
-        status: "starting",
-        stake: "1 core",
-        players: "14/16",
-        timeLeft: "01:15",
-        playersCount: 14,
-        maxPlayers: 16,
-        percentFull: 87,
-        popularity: "trending",
-        previousWinners: 358,
-        averageTime: "3m",
-      },
-      {
-        id: 3,
-        name: "Beginners",
-        status: "filling",
-        stake: "1 core",
-        players: "7/16",
-        timeLeft: "05:23",
-        playersCount: 7,
-        maxPlayers: 16,
-        percentFull: 44,
-        popularity: "medium",
-        previousWinners: 521,
-        averageTime: "4m",
-      },
-      {
-        id: 4,
-        name: "Weekend Special",
-        status: "filling",
-        stake: "1 core",
-        players: "9/16",
-        timeLeft: "04:18",
-        playersCount: 9,
-        maxPlayers: 16,
-        percentFull: 56,
-        popularity: "high",
-        previousWinners: 89,
-        averageTime: "5m",
-      },
-      {
-        id: 5,
-        name: "Last Chance",
-        status: "starting",
-        stake: "1 core",
-        players: "15/16",
-        timeLeft: "00:45",
-        playersCount: 15,
-        maxPlayers: 16,
-        percentFull: 94,
-        popularity: "hot",
-        previousWinners: 63,
-        averageTime: "4m",
-      },
-    ];
 
-    setPools(samplePools);
-    setFeaturedPool(samplePools[4]);
-  }, []);
 
   // Live update pools periodically to create urgency
   useEffect(() => {
@@ -332,15 +247,88 @@ const PoolsInterface: React.FC = () => {
     return () => clearInterval(resetInterval);
   }, [pools]);
 
+
+
+
+
+
+
+
+
+
+// join pool function
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+  useWaitForTransactionReceipt({
+    hash,
+  });
+  
+
+  useEffect(() => {
+    if (isConfirmed) {
+      setJoining(false);
+    }
+  }, [isConfirmed]);
+
+
+  const handleJoinPool = async (poolId:number,entryFee:BigInt) => {
+    try {
+      writeContract({
+        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ABI.abi,
+        functionName: "joinPool",
+        args: [BigInt(poolId)],
+        value: parseEther(entryFee.toString()),
+      });
+      setJoining(true);
+    } catch (err) {
+      console.error("Error joining pool:", err);
+      setJoining(false);
+    }
+  };
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Function to handle pool selection
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
 
     setStakeAmount(Number(pool.entryFee));
-
-    console.log(stakeAmount);
-
   };
   
   // function set pool name;
@@ -354,23 +342,44 @@ const PoolsInterface: React.FC = () => {
     setSelectedPool(null); // Clear selected pool
   };
 
+
+
   // Function to handle staking and entering a pool
-  const handleStake = () => {
+  const handleStake = async () => {
     if (!selectedPool) return;
-
-    setIsStaking(true);
-
-    // Simulate transaction processing with a delay
-    setTimeout(() => {
+  
+    try {
+      setIsStaking(true); 
+      const tx = await handleJoinPool(selectedPool.id, selectedPool.entryFee);
+      await tx.wait();
+  
+    
       setUserBalance((prevBalance) => prevBalance - stakeAmount);
-      setIsStaking(false);
-
-      // Show confirmation notification
-      showPoolNotification(`Successfully entered ${selectedPool.name} pool!`);
       closeModal();
-      // Would navigate to game view here
-    }, 1500);
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      showPoolNotification("Transaction failed. Please try again.");
+    } finally {
+      setIsStaking(false); 
+    }
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // Function to show notifications
   const showPoolNotification = (message: string) => {
@@ -405,6 +414,7 @@ const PoolsInterface: React.FC = () => {
         return null;
     }
   };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Balance and stats bar */}
@@ -522,7 +532,6 @@ const PoolsInterface: React.FC = () => {
               >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
-                <Coins className="w-4 h-4 text-yellow-400 " />
                 <span className="text-[#facc15]">{winner.amount}</span>
                 <span className="ml-1 text-xs text-gray-500">
                   {winner.time}
@@ -535,7 +544,7 @@ const PoolsInterface: React.FC = () => {
 
       {/* Pool selection grid */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-4">Available Pools</h2>
+        <h2 className="text-xl font-bold mb-4">Available Poolsssss</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {newPools.map((pool) => (
             <motion.div
@@ -591,7 +600,7 @@ const PoolsInterface: React.FC = () => {
                 <div>
                   <p className="text-gray-400">Players</p>
                   <p className="font-medium">
-                    {pool.currentParticipants}/{pool.maxParticipants}
+                    {pool.currentActiveParticipants}/{pool.maxParticipants}
                   </p>
                 </div>
               </div>
