@@ -505,12 +505,14 @@ const PoolsInterface: React.FC = () => {
           <motion.div
             className="flex space-x-4"
             animate={{ x: ["0%", "-100%"] }}
-            transition={{
-              duration: 20,
-              ease: "linear",
-              repeat: Infinity,
-              repeatType: "loop",
-            }}
+            transition={
+              {
+                duration: 20,
+                ease: "linear",
+                repeat: Infinity,
+                repeatType: "loop",
+              }
+            }
           >
             {recentWinners.concat(recentWinners).map((winner, i) => (
               <div
@@ -521,7 +523,7 @@ const PoolsInterface: React.FC = () => {
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
                 <Coins className="w-4 h-4 text-yellow-400 " />
-                <span className="text-green-400">{winner.amount}</span>
+                <span className="text-[#facc15]">{winner.amount}</span>
                 <span className="ml-1 text-xs text-gray-500">
                   {winner.time}
                 </span>
