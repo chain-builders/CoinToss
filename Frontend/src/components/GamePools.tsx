@@ -19,21 +19,6 @@ import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
 
 // Define types for the pool object
-interface Pool {
-  id: number;
-  name: string;
-  status: string;
-  stake: string;
-  players: string;
-  timeLeft: string;
-  playersCount: number;
-  maxPlayers: number;
-  percentFull: number;
-  popularity: string;
-  previousWinners: number;
-  averageTime: string;
-}
-
 interface PoolInterface {
   id: number;
   entryFee: BigInt;
@@ -54,14 +39,14 @@ interface RecentWinner {
 }
 
 const PoolsInterface: React.FC = () => {
-  const [pools, setPools] = useState<Pool[]>([]);
+  const [pools, setPools] = useState<PoolInterface[]>([]);
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
-  const [featuredPool, setFeaturedPool] = useState<Pool | null>(null);
+  const [featuredPool, setFeaturedPool] = useState<PoolInterface | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
@@ -436,7 +421,7 @@ const PoolsInterface: React.FC = () => {
       </div>
 
       {/* Featured "hot" pool - creates FOMO */}
-      {featuredPool && (
+      {/* {featuredPool && (
         <motion.div
           className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
@@ -503,9 +488,9 @@ const PoolsInterface: React.FC = () => {
             Join This Pool
           </button>
         </motion.div>
-      )}
+      )} */}
 
-      {/* Recent winners ticker - social proof */}
+      
       <div className="mb-6 bg-gray-800 p-3 rounded-lg overflow-hidden">
         <div className="text-sm font-medium mb-2 flex items-center">
           <Trophy size={16} className="text-yellow-400 mr-2" />
@@ -549,7 +534,7 @@ const PoolsInterface: React.FC = () => {
           {newPools.map((pool) => (
             <motion.div
               key={pool.id}
-              className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
+              className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
                 selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
 
               } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
@@ -595,12 +580,12 @@ const PoolsInterface: React.FC = () => {
               <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <p className="text-gray-400">Stake</p>
-                  <p className="font-medium">{pool.entryFee.toString()}</p>
+                  <p className="font-medium">{pool.entryFee.toString()} core</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
                   <p className="font-medium">
-                    {pool.currentActiveParticipants}/{pool.maxParticipants}
+                    {pool. currentParticipants}/{pool.maxParticipants}
                   </p>
                 </div>
               </div>
