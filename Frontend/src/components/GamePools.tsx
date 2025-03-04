@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useAccount, useReadContract, useBalance } from "wagmi";
+import { useAccount, useReadContract, useBalance,useWriteContract, useWaitForTransactionReceipt  } from "wagmi";
+import { parseEther } from "viem";
 import {
   Sparkles,
   Trophy,
@@ -60,11 +61,14 @@ const PoolsInterface: React.FC = () => {
   const [featuredPool, setFeaturedPool] = useState<Pool | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
+  const [joining, setJoining] = useState(false);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([
     { name: "Player429", amount: "$1,240", time: "2m ago" },
     { name: "CryptoKing", amount: "$450", time: "5m ago" },
     { name: "LuckyStrike", amount: "$2,100", time: "8m ago" },
   ]);
+
+  const { writeContract,data: hash,isPending: isWritePending, error,} = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
 
@@ -102,16 +106,15 @@ const PoolsInterface: React.FC = () => {
   };
 
 
-  const {
-    data: poolData,
-    isLoading: loading,
-    isError: error,
-  } = useReadContract({
-    address: CORE_CONTRACT_ADDRESS,
-    abi: ABI.abi,
-    functionName: "getPoolInfo",
-    args: [1],
-  });
+  // const {
+  //   data: poolData,
+  //   isLoading: loading,
+  // } = useReadContract({
+  //   address: CORE_CONTRACT_ADDRESS,
+  //   abi: ABI.abi,
+  //   functionName: "getPoolInfo",
+  //   args: [1],
+  // });
 
   
   // all pools
@@ -152,7 +155,7 @@ const PoolsInterface: React.FC = () => {
   }, [allPools]);
 
 
-  console.log(allPools[1].currentParticipants)
+  console.log(allPools)
   
 
   useEffect(() => {
@@ -327,13 +330,87 @@ const PoolsInterface: React.FC = () => {
     return () => clearInterval(resetInterval);
   }, [pools]);
 
+
+
+
+
+
+
+
+
+
+// join pool function
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+  useWaitForTransactionReceipt({
+    hash,
+  });
+  
+
+  useEffect(() => {
+    if (isConfirmed) {
+      setJoining(false);
+    }
+  }, [isConfirmed]);
+
+
+  const handleJoinPool = async (poolId:number,entryFee:BigInt) => {
+    try {
+      writeContract({
+        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ABI.abi,
+        functionName: "joinPool",
+        args: [BigInt(poolId)],
+        value: parseEther(entryFee.toString()),
+      });
+      setJoining(true);
+    } catch (err) {
+      console.error("Error joining pool:", err);
+      setJoining(false);
+    }
+  };
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Function to handle pool selection
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
     setStakeAmount(Number(pool.entryFee));
-
-    console.log(stakeAmount);
   };
   
   // function set pool name;
@@ -347,23 +424,44 @@ const PoolsInterface: React.FC = () => {
     setSelectedPool(null); // Clear selected pool
   };
 
+
+
   // Function to handle staking and entering a pool
-  const handleStake = () => {
+  const handleStake = async () => {
     if (!selectedPool) return;
-
-    setIsStaking(true);
-
-    // Simulate transaction processing with a delay
-    setTimeout(() => {
+  
+    try {
+      setIsStaking(true); 
+      const tx = await handleJoinPool(selectedPool.id, selectedPool.entryFee);
+      await tx.wait();
+  
+    
       setUserBalance((prevBalance) => prevBalance - stakeAmount);
-      setIsStaking(false);
-
-      // Show confirmation notification
-      showPoolNotification(`Successfully entered ${selectedPool.name} pool!`);
       closeModal();
-      // Would navigate to game view here
-    }, 1500);
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      showPoolNotification("Transaction failed. Please try again.");
+    } finally {
+      setIsStaking(false); 
+    }
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // Function to show notifications
   const showPoolNotification = (message: string) => {
@@ -397,6 +495,7 @@ const PoolsInterface: React.FC = () => {
         return null;
     }
   };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Balance and stats bar */}
@@ -573,7 +672,7 @@ const PoolsInterface: React.FC = () => {
                 <div>
                   <p className="text-gray-400">Players</p>
                   <p className="font-medium">
-                    {pool.currentParticipants}/{pool.maxParticipants}
+                    {pool.currentActiveParticipants}/{pool.maxParticipants}
                   </p>
                 </div>
               </div>
