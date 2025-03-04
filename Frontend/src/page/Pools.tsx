@@ -5,7 +5,6 @@ import PoolsInterface from "../components/GamePools";
 import RenderMyPoolsTab from "../components/selectedPools";
 import { useReadContract } from "wagmi";
 import contractABI from "./../utils/contract/CoinToss.json";
-import { MakeSelection } from "../components/interaction/MakeSelectionButton";
 
 const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");

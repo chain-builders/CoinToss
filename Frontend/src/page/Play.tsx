@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { MakeSelection } from "../components/interaction/MakeSelectionButton";
-
 interface GameStats {
   totalPlayers: number;
   remainingPlayers: number;
@@ -75,9 +73,7 @@ const PlayGame = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Generate mock players with random choices
@@ -87,9 +83,7 @@ const PlayGame = () => {
       const playerChoice = Math.random() > 0.5 ? "heads" : "tails";
       players.push({
         id: i,
-        address: `0x${Math.random()
-          .toString(16)
-          .substring(2, 8)}...${Math.random().toString(16).substring(2, 6)}`,
+        address: `0x${Math.random().toString(16).substring(2, 8)}...${Math.random().toString(16).substring(2, 6)}`,
         choice: i === 1 && userChoice ? userChoice : playerChoice,
         survived: false,
       });
@@ -100,22 +94,18 @@ const PlayGame = () => {
   // Handle round completion
   const handleRoundEnd = () => {
     stopCoinAnimation();
-
+    
     if (!choice) {
       // If no choice was made, eliminate the player
       setGameStage("results");
-      showNotification(
-        false,
-        "Eliminated!",
-        "You didn't make a choice in time!"
-      );
+      showNotification(false, "Eliminated!", "You didn't make a choice in time!");
       setTimeout(() => {
         setGameStage("gameOver");
         setGameOver(true);
       }, 3000);
       return;
     }
-
+    
     const totalPlayers = gameStats.remainingPlayers;
     const players = generateMockPlayers(totalPlayers, choice);
 
@@ -182,9 +172,9 @@ const PlayGame = () => {
   // Start coin flipping animation
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
-
+    
     if (coinFlipInterval.current) clearInterval(coinFlipInterval.current);
-
+    
     coinFlipInterval.current = setInterval(() => {
       setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
@@ -201,11 +191,7 @@ const PlayGame = () => {
   };
 
   // Show notification
-  const showNotification = (
-    isSuccess: boolean,
-    message: string,
-    subMessage: string
-  ) => {
+  const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
     setNotification({
       isVisible: true,
       isSuccess,
@@ -224,9 +210,10 @@ const PlayGame = () => {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-
+       
       // Cleanup interval on unmount or when timer reaches 0
       return () => clearInterval(interval);
+      
     } else if (timer === 0) {
       setIsTimerActive(false); // Stop the timer when it reaches 0
       handleRoundEnd();
@@ -245,51 +232,29 @@ const PlayGame = () => {
   // Notification component
   const RoundNotification = () => {
     if (!notification.isVisible) return null;
-
+    
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
-        <div
-          className={`p-8 rounded-xl border-4 ${
-            notification.isSuccess
-              ? "border-green-500 bg-green-900"
-              : "border-red-500 bg-red-900"
-          } bg-opacity-90 text-center max-w-md transform scale-in-center`}
-        >
-          <div
-            className={`text-6xl mb-4 ${
-              notification.isSuccess ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {notification.isSuccess ? "🏆" : "❌"}
+        <div className={`p-8 rounded-xl border-4 ${notification.isSuccess ? 'border-green-500 bg-green-900' : 'border-red-500 bg-red-900'} bg-opacity-90 text-center max-w-md transform scale-in-center`}>
+          <div className={`text-6xl mb-4 ${notification.isSuccess ? 'text-green-400' : 'text-red-400'}`}>
+            {notification.isSuccess ? '🏆' : '❌'}
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {notification.message}
-          </h2>
-          <p
-            className={`text-xl ${
-              notification.isSuccess ? "text-green-300" : "text-red-300"
-            }`}
-          >
-            {notification.subMessage}
-          </p>
-
+          <h2 className="text-3xl font-bold text-white mb-2">{notification.message}</h2>
+          <p className={`text-xl ${notification.isSuccess ? 'text-green-300' : 'text-red-300'}`}>{notification.subMessage}</p>
+          
           {notification.isSuccess && (
             <div className="mt-6 text-white">
-              <div className="font-bold">
-                Next round starting in 3 seconds...
-              </div>
+              <div className="font-bold">Next round starting in 3 seconds...</div>
               <div className="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden">
                 <div className="bg-green-500 h-full animate-progress-bar"></div>
               </div>
             </div>
           )}
-
+          
           {!notification.isSuccess && (
-            <button
+            <button 
               className="mt-6 px-6 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-bold transition-colors"
-              onClick={() =>
-                setNotification((prev) => ({ ...prev, isVisible: false }))
-              }
+              onClick={() => setNotification((prev) => ({ ...prev, isVisible: false }))}
             >
               Close
             </button>
@@ -302,40 +267,32 @@ const PlayGame = () => {
   // Game Over screen
   const GameOverScreen = () => {
     if (!gameOver) return null;
-
+    
     const userWon = winners.length === 1 && winners[0].id === 1;
-
+    
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
         <div className="p-8 rounded-xl border-4 border-yellow-500 bg-gray-900 bg-opacity-95 text-center max-w-lg transform scale-in-center">
           <div className="text-6xl mb-4 text-yellow-500">
-            {userWon ? "🏆" : "🎮"}
+            {userWon ? '🏆' : '🎮'}
           </div>
           <h2 className="text-4xl font-bold text-white mb-4">
-            {userWon ? "CONGRATULATIONS!" : "GAME OVER"}
+            {userWon ? 'CONGRATULATIONS!' : 'GAME OVER'}
           </h2>
           <p className="text-xl text-gray-300 mb-6">
-            {userWon
-              ? `You've won the game with ${gameStats.remainingPlayers} players remaining!`
+            {userWon 
+              ? `You've won the game with ${gameStats.remainingPlayers} players remaining!` 
               : `You've been eliminated in round ${round} of ${gameStats.rounds}.`}
           </p>
-
+          
           <div className="bg-black bg-opacity-50 p-4 rounded-lg text-left mb-6">
-            <h3 className="text-lg font-bold text-yellow-500 mb-2">
-              Game Summary
-            </h3>
-            <p className="text-gray-300">
-              Starting Players: {gameStats.totalPlayers}
-            </p>
-            <p className="text-gray-300">
-              Rounds Completed: {gameStats.roundsCompleted}
-            </p>
-            <p className="text-gray-300">
-              Final Winning Choice: {gameStats.winningChoice}
-            </p>
+            <h3 className="text-lg font-bold text-yellow-500 mb-2">Game Summary</h3>
+            <p className="text-gray-300">Starting Players: {gameStats.totalPlayers}</p>
+            <p className="text-gray-300">Rounds Completed: {gameStats.roundsCompleted}</p>
+            <p className="text-gray-300">Final Winning Choice: {gameStats.winningChoice}</p>
           </div>
-
-          <button
+          
+          <button 
             className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors"
             onClick={() => {
               setGameOver(true);
@@ -406,20 +363,22 @@ const PlayGame = () => {
       {/* Coin Animation Area */}
       {isCoinFlipping && (
         <div className="absolute z-10 h-48 w-48 flex items-center justify-center">
-          <div
+          <div 
             className="w-32 h-32 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center text-4xl transform transition-all duration-100 border-4 border-yellow-300 shadow-lg"
-            style={{
+            style={{ 
               transform: `rotateY(${coinRotation}deg)`,
-              opacity: coinRotation % 180 < 90 ? "1" : "0.2",
+              opacity: coinRotation % 180 < 90 ? '1' : '0.2'
             }}
           >
-            {coinRotation % 180 < 90 ? "🪙" : "💰"}
+            {coinRotation % 180 < 90 ? '🪙' : '💰'}
           </div>
         </div>
       )}
 
       <div className="flex flex-col md:flex-row gap-6 md:gap-12 justify-center items-center mb-10">
+  
         <div className="relative">
+         
           {choice === "heads" && (
             <div className="absolute -inset-3 bg-yellow-500 opacity-20 blur-xl rounded-full animate-pulse"></div>
           )}
@@ -442,6 +401,7 @@ const PlayGame = () => {
               )}
             </div>
           </button>
+
         </div>
 
         {/* VS Divider */}
@@ -475,9 +435,10 @@ const PlayGame = () => {
               )}
             </div>
           </button>
+
         </div>
       </div>
-
+     
       {/* Timer Section with Enhanced Drama */}
       <div className="max-w-xl w-full mx-auto px-4">
         <div className="bg-black bg-opacity-80 p-4 rounded-lg border border-gray-800">
@@ -485,11 +446,7 @@ const PlayGame = () => {
             <div className="text-white font-bold text-xl">TIME REMAINING</div>
             <div
               className={`text-2xl font-bold ${
-                timer < 5
-                  ? "text-red-500 animate-pulse"
-                  : timer < 10
-                  ? "text-orange-500"
-                  : "text-yellow-500"
+                timer < 5 ? "text-red-500 animate-pulse" : timer < 10 ? "text-orange-500" : "text-yellow-500"
               }`}
             >
               {formatTime(timer)}
@@ -514,6 +471,8 @@ const PlayGame = () => {
               <span className="text-yellow-500 font-bold">Tip:</span> The
               minority option wins!
             </div>
+
+           
           </div>
         </div>
       </div>
@@ -524,30 +483,14 @@ const PlayGame = () => {
           <div>
             Last winner:{" "}
             <span className="text-yellow-500">
-              {playerHistory.length > 0
-                ? `${playerHistory[
-                    playerHistory.length - 1
-                  ].minorityChoice.toUpperCase()} (${
-                    playerHistory[playerHistory.length - 1].minorityChoice ===
-                    "heads"
-                      ? Math.round(
-                          (playerHistory[playerHistory.length - 1].headsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
-                      : Math.round(
-                          (playerHistory[playerHistory.length - 1].tailsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
+              {playerHistory.length > 0 
+                ? `${playerHistory[playerHistory.length-1].minorityChoice.toUpperCase()} (${
+                    playerHistory[playerHistory.length-1].minorityChoice === "heads" 
+                      ? Math.round((playerHistory[playerHistory.length-1].headsCount / (playerHistory[playerHistory.length-1].headsCount + playerHistory[playerHistory.length-1].tailsCount)) * 100) 
+                      : Math.round((playerHistory[playerHistory.length-1].tailsCount / (playerHistory[playerHistory.length-1].headsCount + playerHistory[playerHistory.length-1].tailsCount)) * 100)
                   }% chose)`
-                : "HEADS (38% chose)"}
+                : "HEADS (38% chose)"
+              }
             </span>
           </div>
           <div>
@@ -559,10 +502,10 @@ const PlayGame = () => {
 
       {/* Notification for round results */}
       <RoundNotification />
-
+      
       {/* Game Over Screen */}
       <GameOverScreen />
-
+      
       {/* Additional CSS for animations */}
       {/* <style jsx>{`
         @keyframes scale-in-center {
@@ -598,3 +541,8 @@ const PlayGame = () => {
 };
 
 export default PlayGame;
+
+
+
+
+
