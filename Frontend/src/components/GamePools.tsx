@@ -4,6 +4,7 @@ import {
   useBalance,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useReadContract,
 } from "wagmi";
 import {
   Sparkles,
@@ -18,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatUnits } from "ethers";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+import { parseEther } from "viem";
 
 // Define types for the pool object
 interface Pool {
@@ -89,6 +91,65 @@ const PoolsInterface: React.FC = () => {
     address: address,
     chainId: 1114,
   });
+
+  const fetchPools = async (poolId: number) => {
+    const { data } = useReadContract({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: ABI.abi,
+      functionName: "getPoolInfo",
+      args: [poolId],
+    });
+    if (!data) throw new Error(`Failed to fetch data for pool ${poolId}`);
+
+    if (!Array.isArray(data) || data.length < 8) {
+      throw new Error("Invalid pool data format");
+    }
+    return {
+      entryFee: Number(data[0]),
+      maxParticipants: Number(data[1]),
+      currentParticipants: Number(data[2]),
+      prizePool: Number(data[3]),
+      currentRound: Number(data[4]),
+      poolStatus: Number(data[5]),
+      maxWinners: Number(data[6]),
+      currentActiveParticipants: Number(data[7]),
+    };
+  };
+
+  // all pools
+  const { data: allPools } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getAllPools",
+    args: [],
+  });
+
+  useEffect(() => {
+    if (allPools) {
+      console.log("Fetched pool data:", allPools);
+
+      // Check if allPools is a valid array
+      if (!Array.isArray(allPools)) {
+        throw new Error("Invalid pool data format");
+      }
+
+      const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
+        id: Number(pool.poolId),
+        entryFee: BigInt(pool.entryFee) / 10n ** 16n,
+        maxParticipants: Number(pool.maxParticipants),
+        currentParticipants: Number(pool.currentParticipants),
+        prizePool: Number(pool.prizePool),
+        currentRound: Number(pool.currentRound),
+        poolStatus: Number(pool.poolStatus),
+        maxWinners: Number(pool.maxWinners),
+        currentActiveParticipants: Number(pool.currentActiveParticipants),
+      }));
+
+      setNewPools(transformedPools);
+    }
+  }, [allPools]);
+
+  console.log(allPools);
 
   // Live update pools periodically to create urgency
   useEffect(() => {
@@ -390,7 +451,8 @@ const PoolsInterface: React.FC = () => {
               >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
-                <span className="text-green-400">{winner.amount}</span>
+
+                <span className="text-[#facc15]">{winner.amount}</span>
                 <span className="ml-1 text-xs text-gray-500">
                   {winner.time}
                 </span>
@@ -402,7 +464,7 @@ const PoolsInterface: React.FC = () => {
 
       {/* Pool selection grid */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-4">Available Pools</h2>
+        <h2 className="text-xl font-bold mb-4">Available Poolsssss</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {newPools.map((pool) => (
             <motion.div
@@ -430,7 +492,7 @@ const PoolsInterface: React.FC = () => {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-bold flex items-center">
-                  {setPoolNames(pool.id)}
+                  {/* {setPoolNames(pool.id)} */}
                   {pool.poolStatus === 1 && (
                     <Sparkles size={16} className="ml-2 text-yellow-400" />
                   )}
@@ -504,7 +566,7 @@ const PoolsInterface: React.FC = () => {
 
               {/* Modal content */}
               <h3 className="text-xl font-bold mb-4">
-                Join {selectedPool.name}
+                {/* Join {selectedPool.} */}
               </h3>
               <div className="flex items-center justify-between mb-4">
                 <div>

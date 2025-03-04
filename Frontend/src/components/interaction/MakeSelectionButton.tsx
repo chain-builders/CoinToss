@@ -72,56 +72,56 @@ export function MakeSelection({ poolId, onSelectionMade }: MakeSelectionProps) {
     console.error("Error making selection:", error);
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-xl font-semibold mb-4">Make Your Choice</h3>
-      <p className="mb-4 text-gray-600">
-        Choose HEADS or TAILS for Pool #{poolId}
-      </p>
+  // return (
+  //   <div className="bg-white rounded-lg shadow p-6">
+  //     <h3 className="text-xl font-semibold mb-4">Make Your Choice</h3>
+  //     <p className="mb-4 text-gray-600">
+  //       Choose HEADS or TAILS for Pool #{poolId}
+  //     </p>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <button
-          onClick={() => setSelectedChoice(PlayerChoice.HEADS)}
-          className={`p-4 border rounded-lg transition ${
-            selectedChoice === PlayerChoice.HEADS
-              ? "bg-blue-500 text-white border-blue-700"
-              : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
-          }`}
-        >
-          HEADS
-        </button>
+  //     <div className="grid grid-cols-2 gap-4 mb-6">
+  //       <button
+  //         onClick={() => setSelectedChoice(PlayerChoice.HEADS)}
+  //         className={`p-4 border rounded-lg transition ${
+  //           selectedChoice === PlayerChoice.HEADS
+  //             ? "bg-blue-500 text-white border-blue-700"
+  //             : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+  //         }`}
+  //       >
+  //         HEADS
+  //       </button>
 
-        <button
-          onClick={() => setSelectedChoice(PlayerChoice.TAILS)}
-          className={`p-4 border rounded-lg transition ${
-            selectedChoice === PlayerChoice.TAILS
-              ? "bg-blue-500 text-white border-blue-700"
-              : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
-          }`}
-        >
-          TAILS
-        </button>
-      </div>
+  //       <button
+  //         onClick={() => setSelectedChoice(PlayerChoice.TAILS)}
+  //         className={`p-4 border rounded-lg transition ${
+  //           selectedChoice === PlayerChoice.TAILS
+  //             ? "bg-blue-500 text-white border-blue-700"
+  //             : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+  //         }`}
+  //       >
+  //         TAILS
+  //       </button>
+  //     </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={
-          !selectedChoice || isWritePending || isConfirming || isSubmitting
-        }
-        className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-      >
-        {isWritePending || isConfirming || isSubmitting
-          ? "Submitting..."
-          : isConfirmed
-          ? "Selection Made!"
-          : "Submit Selection"}
-      </button>
+  //     <button
+  //       onClick={handleSubmit}
+  //       disabled={
+  //         !selectedChoice || isWritePending || isConfirming || isSubmitting
+  //       }
+  //       className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+  //     >
+  //       {isWritePending || isConfirming || isSubmitting
+  //         ? "Submitting..."
+  //         : isConfirmed
+  //         ? "Selection Made!"
+  //         : "Submit Selection"}
+  //     </button>
 
-      {isConfirmed && (
-        <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg">
-          Your selection has been submitted successfully!
-        </div>
-      )}
-    </div>
-  );
+  //     {isConfirmed && (
+  //       <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg">
+  //         Your selection has been submitted successfully!
+  //       </div>
+  //     )}
+  //   </div>
+  // );
 }
