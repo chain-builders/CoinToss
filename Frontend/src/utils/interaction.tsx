@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import {alchemyKey,contractAddress} from "../../config";
 import contractABI from "./contract/CoinToss.sol/CoinToss.json"
 import { useAccount, useSigner } from "wagmi"; // Assuming wagmi for wallet connection
@@ -27,10 +27,7 @@ const getContract = () => {
 
 
 
-=======
-// import { ethers } from "ethers";
-// import { alchemyKey, contractAddress } from "../../config";
->>>>>>> 12f0e670d7cb3ab8906d2cc63aa7df03b5430db7
+
 
 // const provider = new ethers.AlchemyProvider("sepolia", alchemyKey);
 

@@ -28,7 +28,7 @@ const MinorityGame = () => {
 
   useEffect(() => {
     if (poolInfo) {
-      console.log("Fetched pool:", poolInfo);
+      // console.log("Fetched pool:", poolInfo);
     } else {
       console.log(error);
     }

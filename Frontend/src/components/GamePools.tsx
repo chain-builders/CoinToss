@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount, useReadContract, useBalance } from "wagmi";
+
+
 import {
   Sparkles,
   Trophy,
@@ -10,7 +12,11 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins } from "lucide-react";
+import { formatUnits } from "ethers";
+import ABI from "../utils/contract/CoinToss.json";
+import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+
+
 
 // Define types for the pool object
 interface Pool {
@@ -28,6 +34,18 @@ interface Pool {
   averageTime: string;
 }
 
+interface PoolInterface {
+  id: number;
+  entryFee: BigInt;
+  maxParticipants: number;
+  currentParticipants: number;
+  prizePool: number;
+  currentRound: number;
+  poolStatus: number;
+  maxWinners: number;
+  currentActiveParticipants: number;
+}
+
 // Define types for the recent winners
 interface RecentWinner {
   name: string;
@@ -37,7 +55,8 @@ interface RecentWinner {
 
 const PoolsInterface: React.FC = () => {
   const [pools, setPools] = useState<Pool[]>([]);
-  const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
+  const [newPools, setNewPools] = useState<PoolInterface[]>([]);
+  const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [isStaking, setIsStaking] = useState<boolean>(false);
@@ -60,7 +79,86 @@ const PoolsInterface: React.FC = () => {
   } = useBalance({
     address: address,
     chainId: 1114,
+
   });
+
+  const fetchPools = async (poolId: number) => {
+    const { data } = useReadContract({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: ABI.abi,
+      functionName: "getPoolInfo",
+      args: [poolId],
+    });
+    if (!data) throw new Error(`Failed to fetch data for pool ${poolId}`);
+
+    if (!Array.isArray(data) || data.length < 8) {
+      throw new Error("Invalid pool data format");
+    }
+    return {
+      entryFee: Number(data[0]),
+      maxParticipants: Number(data[1]),
+      currentParticipants: Number(data[2]),
+      prizePool: Number(data[3]),
+      currentRound: Number(data[4]),
+      poolStatus: Number(data[5]),
+      maxWinners: Number(data[6]),
+      currentActiveParticipants: Number(data[7]),
+    };
+  };
+
+
+  const {
+    data: poolData,
+    isLoading: loading,
+    isError: error,
+  } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getPoolInfo",
+    args: [1],
+  });
+
+  
+  // all pools
+  const {
+    data: allPools,
+   
+  } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getAllPools",
+    args: [],
+  });
+
+  useEffect(() => {
+    if (allPools) {
+      console.log("Fetched pool data:", allPools);
+  
+      // Check if allPools is a valid array
+      if (!Array.isArray(allPools)) {
+        throw new Error("Invalid pool data format");
+      }
+
+      const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
+        id: Number(pool.poolId),
+        entryFee: BigInt(pool.entryFee)/10n ** 16n, 
+        maxParticipants: Number(pool.maxParticipants),
+        currentParticipants: Number(pool.currentParticipants),
+        prizePool: Number(pool.prizePool),
+        currentRound: Number(pool.currentRound),
+        poolStatus: Number(pool.poolStatus),
+        maxWinners: Number(pool.maxWinners),
+        currentActiveParticipants: Number(pool.currentActiveParticipants),
+      }));
+  
+      
+      setNewPools(transformedPools);
+    }
+  }, [allPools]);
+
+
+  console.log(allPools[1].currentParticipants)
+  
 
   useEffect(() => {
     const samplePools: Pool[] = [
@@ -235,11 +333,21 @@ const PoolsInterface: React.FC = () => {
   }, [pools]);
 
   // Function to handle pool selection
-  const handlePoolSelect = (pool: Pool) => {
+  const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
-    setStakeAmount(parseInt(pool.stake.replace("$", ""), 10));
+
+    setStakeAmount(Number(pool.entryFee));
+
+    console.log(stakeAmount);
+
   };
+  
+  // function set pool name;
+  const setPoolNames=(poolId:number)=>{
+    let poolNames=["High Rollers","Quick Play","Beginners","Weekend Special","Last Chance"]
+    return poolNames[poolId];
+  }
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -272,11 +380,12 @@ const PoolsInterface: React.FC = () => {
   };
 
   // Function to determine status color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: number) => {
     switch (status) {
-      case "filling":
+      case 1:
         return "text-blue-400";
-      case "starting":
+      case 2:
+
         return "text-yellow-400";
       default:
         return "text-gray-400";
@@ -296,7 +405,6 @@ const PoolsInterface: React.FC = () => {
         return null;
     }
   };
-
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Balance and stats bar */}
@@ -329,7 +437,7 @@ const PoolsInterface: React.FC = () => {
             FILLING FAST
           </div>
 
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-stol.name}art">
             <div>
               <h3 className="text-xl font-bold flex items-center text-yellow-400">
                 <Trophy size={18} className="mr-2" /> {featuredPool.name}
@@ -407,7 +515,8 @@ const PoolsInterface: React.FC = () => {
             {recentWinners.concat(recentWinners).map((winner, i) => (
               <div
                 key={i}
-                className=" bg-gray-700 px-3 py-1 rounded-lg flex items-center"
+                className="inline-block bg-gray-700 px-3 py-1 rounded-lg"
+
               >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
@@ -426,12 +535,14 @@ const PoolsInterface: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {pools.map((pool) => (
+          {newPools.map((pool) => (
             <motion.div
               key={pool.id}
               className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
                 selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
-              } ${pool.status === "starting" ? "border-yellow-600" : ""} ${
+
+              } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
+
                 showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
               }`}
               onClick={() => handlePoolSelect(pool)}
@@ -452,37 +563,34 @@ const PoolsInterface: React.FC = () => {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-bold flex items-center">
-                  {pool.name}
-                  {pool.status === "starting" && (
+
+                  {setPoolNames(pool.id)}
+                  {pool.poolStatus === 1 && (
                     <Sparkles size={16} className="ml-2 text-yellow-400" />
-                  )}
-                  {getPopularityIcon(pool.popularity) && (
-                    <span className="ml-2">
-                      {getPopularityIcon(pool.popularity)}
-                    </span>
+
                   )}
                 </h3>
                 <span
                   className={`text-sm font-medium ${getStatusColor(
-                    pool.status
+
+                    pool.poolStatus
                   )}`}
                 >
-                  {pool.status === "filling" ? "Filling" : "Starting Soon"}
+                  {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
+
                 </span>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <p className="text-gray-400">Stake</p>
-                  <p className="font-medium">{pool.stake}</p>
+                  <p className="font-medium">{pool.entryFee.toString()}</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
-                  <p className="font-medium">{pool.players}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400">Time Left</p>
-                  <p className="font-medium">{pool.timeLeft}</p>
+                  <p className="font-medium">
+                    {pool.currentParticipants}/{pool.maxParticipants}
+                  </p>
                 </div>
               </div>
 
@@ -491,24 +599,14 @@ const PoolsInterface: React.FC = () => {
                 <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${
-                      pool.status === "starting"
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
-                    }`}
-                    style={{ width: `${pool.percentFull}%` }}
-                  />
-                </div>
-              </div>
 
-              {/* Additional stats - Social Proof */}
-              <div className="mt-3 flex justify-between text-xs text-gray-500">
-                <div className="flex items-center">
-                  <Trophy size={12} className="mr-1" />
-                  {pool.previousWinners} winners
-                </div>
-                <div className="flex items-center">
-                  <Clock size={12} className="mr-1" />
-                  Avg. game: {pool.averageTime}
+                      pool.poolStatus === 1 ? "bg-yellow-500" : "bg-blue-500"
+
+                    }`}
+                    // style={{ width: `${pool.percentFull}%` }}
+                  />{" "}
+                  <p className="text-gray-400">Stake</p>
+                  <p className="font-medium"> 2</p>
                 </div>
               </div>
             </motion.div>
@@ -548,7 +646,9 @@ const PoolsInterface: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-400">Required Stake</p>
-                  <p className="text-xl font-bold">{selectedPool.stake}</p>
+                  <p className="text-xl font-bold">
+                    {Number(selectedPool.entryFee)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-400">Your Balance</p>
@@ -560,7 +660,10 @@ const PoolsInterface: React.FC = () => {
               <div className="p-3 bg-gray-800 rounded-lg mb-4 flex items-center">
                 <AlertTriangle size={18} className="text-yellow-400 mr-2" />
                 <p className="text-sm">
-                  Only {selectedPool.maxPlayers - selectedPool.playersCount}{" "}
+                  Only{" "}
+                  {selectedPool.maxParticipants -
+                    selectedPool.currentParticipants}{" "}
+
                   spots remaining! Game starts in {selectedPool.timeLeft}
                 </p>
               </div>
@@ -598,7 +701,7 @@ const PoolsInterface: React.FC = () => {
                     Processing...
                   </span>
                 ) : (
-                  `Stake ${selectedPool.stake} & Enter Pool`
+                  `Stake ${selectedPool.entryFee} & Enter Pool`
                 )}
               </button>
             </motion.div>
