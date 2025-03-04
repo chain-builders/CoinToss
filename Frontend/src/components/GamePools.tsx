@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { useAccount, useBalance } from "wagmi";
-import { Sparkles, Trophy, Clock, Users, TrendingUp, Star, AlertTriangle } from 'lucide-react';
-import { motion,AnimatePresence } from 'framer-motion';
+import {
+  Sparkles,
+  Trophy,
+  Clock,
+  Users,
+  TrendingUp,
+  Star,
+  AlertTriangle,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Coins } from "lucide-react";
 
 // Define types for the pool object
 interface Pool {
@@ -35,27 +44,96 @@ const PoolsInterface: React.FC = () => {
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
   const [featuredPool, setFeaturedPool] = useState<Pool | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
-  const [notificationMessage, setNotificationMessage] = useState<string>('');
+  const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([
-    { name: "Player429", amount: "$1,240", time: "2m ago" },
-    { name: "CryptoKing", amount: "$450", time: "5m ago" },
-    { name: "LuckyStrike", amount: "$2,100", time: "8m ago" },
+    { name: "Player429", amount: "1,240", time: "2m ago" },
+    { name: "CryptoKing", amount: "450", time: "5m ago" },
+    { name: "LuckyStrike", amount: "2,100", time: "8m ago" },
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
 
-  const { data: balanceData, isLoading, isError } = useBalance({
+  const {
+    data: balanceData,
+    isLoading,
+    isError,
+  } = useBalance({
     address: address,
-    chainId: 1114, 
+    chainId: 1114,
   });
 
   useEffect(() => {
     const samplePools: Pool[] = [
-      { id: 1, name: "High Rollers", status: "filling", stake: "2 core", players: "12/16", timeLeft: "03:42", playersCount: 12, maxPlayers: 16, percentFull: 75, popularity: 'high', previousWinners: 142, averageTime: "4m" },
-      { id: 2, name: "Quick Play", status: "starting", stake: "1 core", players: "14/16", timeLeft: "01:15", playersCount: 14, maxPlayers: 16, percentFull: 87, popularity: 'trending', previousWinners: 358, averageTime: "3m" },
-      { id: 3, name: "Beginners", status: "filling", stake: "1 core", players: "7/16", timeLeft: "05:23", playersCount: 7, maxPlayers: 16, percentFull: 44, popularity: 'medium', previousWinners: 521, averageTime: "4m" },
-      { id: 4, name: "Weekend Special", status: "filling", stake: "1 core", players: "9/16", timeLeft: "04:18", playersCount: 9, maxPlayers: 16, percentFull: 56, popularity: 'high', previousWinners: 89, averageTime: "5m" },
-      { id: 5, name: "Last Chance", status: "starting", stake: "1 core", players: "15/16", timeLeft: "00:45", playersCount: 15, maxPlayers: 16, percentFull: 94, popularity: 'hot', previousWinners: 63, averageTime: "4m" },
+      {
+        id: 1,
+        name: "High Rollers",
+        status: "filling",
+        stake: "2 core",
+        players: "12/16",
+        timeLeft: "03:42",
+        playersCount: 12,
+        maxPlayers: 16,
+        percentFull: 75,
+        popularity: "high",
+        previousWinners: 142,
+        averageTime: "4m",
+      },
+      {
+        id: 2,
+        name: "Quick Play",
+        status: "starting",
+        stake: "1 core",
+        players: "14/16",
+        timeLeft: "01:15",
+        playersCount: 14,
+        maxPlayers: 16,
+        percentFull: 87,
+        popularity: "trending",
+        previousWinners: 358,
+        averageTime: "3m",
+      },
+      {
+        id: 3,
+        name: "Beginners",
+        status: "filling",
+        stake: "1 core",
+        players: "7/16",
+        timeLeft: "05:23",
+        playersCount: 7,
+        maxPlayers: 16,
+        percentFull: 44,
+        popularity: "medium",
+        previousWinners: 521,
+        averageTime: "4m",
+      },
+      {
+        id: 4,
+        name: "Weekend Special",
+        status: "filling",
+        stake: "1 core",
+        players: "9/16",
+        timeLeft: "04:18",
+        playersCount: 9,
+        maxPlayers: 16,
+        percentFull: 56,
+        popularity: "high",
+        previousWinners: 89,
+        averageTime: "5m",
+      },
+      {
+        id: 5,
+        name: "Last Chance",
+        status: "starting",
+        stake: "1 core",
+        players: "15/16",
+        timeLeft: "00:45",
+        playersCount: 15,
+        maxPlayers: 16,
+        percentFull: 94,
+        popularity: "hot",
+        previousWinners: 63,
+        averageTime: "4m",
+      },
     ];
 
     setPools(samplePools);
@@ -67,7 +145,7 @@ const PoolsInterface: React.FC = () => {
     const interval = setInterval(() => {
       setPools((currentPools) =>
         currentPools.map((pool) => {
-          const [min, sec] = pool.timeLeft.split(':').map(Number);
+          const [min, sec] = pool.timeLeft.split(":").map(Number);
           let newSec = sec - 5;
           let newMin = min;
           if (newSec < 0) {
@@ -87,10 +165,15 @@ const PoolsInterface: React.FC = () => {
             newPlayersCount = Math.min(pool.playersCount + 1, pool.maxPlayers);
             // Add a visual pulse to this pool
             setShowPulse((prev) => ({ ...prev, [pool.id]: true }));
-            setTimeout(() => setShowPulse((prev) => ({ ...prev, [pool.id]: false })), 1000);
+            setTimeout(
+              () => setShowPulse((prev) => ({ ...prev, [pool.id]: false })),
+              1000
+            );
           }
 
-          const percentFull = Math.round((newPlayersCount / pool.maxPlayers) * 100);
+          const percentFull = Math.round(
+            (newPlayersCount / pool.maxPlayers) * 100
+          );
 
           // Change status to "starting" when nearly full
           let newStatus = pool.status;
@@ -101,13 +184,15 @@ const PoolsInterface: React.FC = () => {
 
           return {
             ...pool,
-            timeLeft: `${String(newMin).padStart(2, '0')}:${String(newSec).padStart(2, '0')}`,
+            timeLeft: `${String(newMin).padStart(2, "0")}:${String(
+              newSec
+            ).padStart(2, "0")}`,
             playersCount: newPlayersCount,
             players: `${newPlayersCount}/${pool.maxPlayers}`,
             percentFull,
             status: newStatus,
           };
-        }),
+        })
       );
     }, 5000);
 
@@ -117,13 +202,19 @@ const PoolsInterface: React.FC = () => {
   // Reset almost-full pools occasionally to maintain scarcity pressure
   useEffect(() => {
     const resetInterval = setInterval(() => {
-      const poolsToReset = pools.filter((p) => p.timeLeft === "00:00" || (p.status === "starting" && p.percentFull === 100));
+      const poolsToReset = pools.filter(
+        (p) =>
+          p.timeLeft === "00:00" ||
+          (p.status === "starting" && p.percentFull === 100)
+      );
 
       if (poolsToReset.length > 0) {
         setPools((currentPools) =>
           currentPools.map((pool) => {
-            if (pool.timeLeft === "00:00" || (pool.status === "starting" && pool.percentFull === 100)) {
-              
+            if (
+              pool.timeLeft === "00:00" ||
+              (pool.status === "starting" && pool.percentFull === 100)
+            ) {
               // Create a "new" pool with slightly different parameters
               return {
                 ...pool,
@@ -135,7 +226,7 @@ const PoolsInterface: React.FC = () => {
               };
             }
             return pool;
-          }),
+          })
         );
       }
     }, 15000);
@@ -146,8 +237,8 @@ const PoolsInterface: React.FC = () => {
   // Function to handle pool selection
   const handlePoolSelect = (pool: Pool) => {
     setSelectedPool(pool);
-    setIsModalOpen(true)
-    setStakeAmount(parseInt(pool.stake.replace('$', ''), 10));
+    setIsModalOpen(true);
+    setStakeAmount(parseInt(pool.stake.replace("$", ""), 10));
   };
 
   const closeModal = () => {
@@ -168,7 +259,7 @@ const PoolsInterface: React.FC = () => {
 
       // Show confirmation notification
       showPoolNotification(`Successfully entered ${selectedPool.name} pool!`);
-      closeModal()
+      closeModal();
       // Would navigate to game view here
     }, 1500);
   };
@@ -183,23 +274,23 @@ const PoolsInterface: React.FC = () => {
   // Function to determine status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'filling':
-        return 'text-blue-400';
-      case 'starting':
-        return 'text-yellow-400';
+      case "filling":
+        return "text-blue-400";
+      case "starting":
+        return "text-yellow-400";
       default:
-        return 'text-gray-400';
+        return "text-gray-400";
     }
   };
 
   // Function to determine popularity icon
   const getPopularityIcon = (popularity: string) => {
     switch (popularity) {
-      case 'hot':
+      case "hot":
         return <TrendingUp size={14} className="text-red-400" />;
-      case 'high':
+      case "high":
         return <Star size={14} className="text-yellow-400" />;
-      case 'trending':
+      case "trending":
         return <TrendingUp size={14} className="text-green-400" />;
       default:
         return null;
@@ -211,7 +302,10 @@ const PoolsInterface: React.FC = () => {
       {/* Balance and stats bar */}
       <div className="flex justify-between items-center mb-6 bg-gray-800 p-3 rounded-lg">
         <div className="font-medium">
-          Your Balance: <span className="text-green-400">{balanceData?.formatted} {balanceData?.symbol}</span>
+          Your Balance:{" "}
+          <span className="text-green-400">
+            {balanceData?.formatted} {balanceData?.symbol}
+          </span>
         </div>
         <div className="flex space-x-4 text-sm">
           <div className="text-gray-400">
@@ -240,10 +334,16 @@ const PoolsInterface: React.FC = () => {
               <h3 className="text-xl font-bold flex items-center text-yellow-400">
                 <Trophy size={18} className="mr-2" /> {featuredPool.name}
               </h3>
-              <p className="text-gray-400 text-sm">Almost full! Join now before it starts</p>
+              <p className="text-gray-400 text-sm">
+                Almost full! Join now before it starts
+              </p>
             </div>
-            <div className={`text-sm font-medium ${getStatusColor(featuredPool.status)}`}>
-              {featuredPool.status === 'filling' ? 'Filling' : 'Starting Soon'}
+            <div
+              className={`text-sm font-medium ${getStatusColor(
+                featuredPool.status
+              )}`}
+            >
+              {featuredPool.status === "filling" ? "Filling" : "Starting Soon"}
             </div>
           </div>
 
@@ -262,7 +362,9 @@ const PoolsInterface: React.FC = () => {
             </div>
             <div>
               <p className="text-gray-400">Previous Winners</p>
-              <p className="font-medium text-white">{featuredPool.previousWinners}</p>
+              <p className="font-medium text-white">
+                {featuredPool.previousWinners}
+              </p>
             </div>
           </div>
 
@@ -291,7 +393,7 @@ const PoolsInterface: React.FC = () => {
           <Trophy size={16} className="text-yellow-400 mr-2" />
           Recent Winners
         </div>
-        <div className="overflow-x-auto pb-2 whitespace-nowrap">
+        <div className="no-scrollbar overflow-x-auto pb-2 whitespace-nowrap">
           <motion.div
             className="flex space-x-4"
             animate={{ x: ["0%", "-100%"] }}
@@ -303,11 +405,17 @@ const PoolsInterface: React.FC = () => {
             }}
           >
             {recentWinners.concat(recentWinners).map((winner, i) => (
-              <div key={i} className="inline-block bg-gray-700 px-3 py-1 rounded-lg">
+              <div
+                key={i}
+                className=" bg-gray-700 px-3 py-1 rounded-lg flex items-center"
+              >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
+                <Coins className="w-4 h-4 text-yellow-400 " />
                 <span className="text-green-400">{winner.amount}</span>
-                <span className="ml-1 text-xs text-gray-500">{winner.time}</span>
+                <span className="ml-1 text-xs text-gray-500">
+                  {winner.time}
+                </span>
               </div>
             ))}
           </motion.div>
@@ -322,11 +430,9 @@ const PoolsInterface: React.FC = () => {
             <motion.div
               key={pool.id}
               className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
-                selectedPool?.id === pool.id ? 'ring-2 ring-purple-500' : ''
-              } ${
-                pool.status === 'starting' ? 'border-yellow-600' : ''
-              } ${
-                showPulse[pool.id] ? 'ring-2 ring-blue-500' : ''
+                selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
+              } ${pool.status === "starting" ? "border-yellow-600" : ""} ${
+                showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
               }`}
               onClick={() => handlePoolSelect(pool)}
               whileHover={{ scale: 1.02 }}
@@ -335,9 +441,9 @@ const PoolsInterface: React.FC = () => {
                 showPulse[pool.id]
                   ? {
                       boxShadow: [
-                        '0 0 0 rgba(59, 130, 246, 0)',
-                        '0 0 15px rgba(59, 130, 246, 0.7)',
-                        '0 0 0 rgba(59, 130, 246, 0)',
+                        "0 0 0 rgba(59, 130, 246, 0)",
+                        "0 0 15px rgba(59, 130, 246, 0.7)",
+                        "0 0 0 rgba(59, 130, 246, 0)",
                       ],
                     }
                   : {}
@@ -347,13 +453,21 @@ const PoolsInterface: React.FC = () => {
               <div className="flex justify-between items-start">
                 <h3 className="font-bold flex items-center">
                   {pool.name}
-                  {pool.status === 'starting' && <Sparkles size={16} className="ml-2 text-yellow-400" />}
+                  {pool.status === "starting" && (
+                    <Sparkles size={16} className="ml-2 text-yellow-400" />
+                  )}
                   {getPopularityIcon(pool.popularity) && (
-                    <span className="ml-2">{getPopularityIcon(pool.popularity)}</span>
+                    <span className="ml-2">
+                      {getPopularityIcon(pool.popularity)}
+                    </span>
                   )}
                 </h3>
-                <span className={`text-sm font-medium ${getStatusColor(pool.status)}`}>
-                  {pool.status === 'filling' ? 'Filling' : 'Starting Soon'}
+                <span
+                  className={`text-sm font-medium ${getStatusColor(
+                    pool.status
+                  )}`}
+                >
+                  {pool.status === "filling" ? "Filling" : "Starting Soon"}
                 </span>
               </div>
 
@@ -377,7 +491,9 @@ const PoolsInterface: React.FC = () => {
                 <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${
-                      pool.status === 'starting' ? 'bg-yellow-500' : 'bg-blue-500'
+                      pool.status === "starting"
+                        ? "bg-yellow-500"
+                        : "bg-blue-500"
                     }`}
                     style={{ width: `${pool.percentFull}%` }}
                   />
@@ -426,7 +542,9 @@ const PoolsInterface: React.FC = () => {
               </button>
 
               {/* Modal content */}
-              <h3 className="text-xl font-bold mb-4">Join {selectedPool.name}</h3>
+              <h3 className="text-xl font-bold mb-4">
+                Join {selectedPool.name}
+              </h3>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-gray-400">Required Stake</p>
@@ -434,19 +552,23 @@ const PoolsInterface: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-400">Your Balance</p>
-                  <p className="text-xl font-bold text-green-400">{balanceData?.formatted} {balanceData?.symbol}</p>
+                  <p className="text-xl font-bold text-green-400">
+                    {balanceData?.formatted} {balanceData?.symbol}
+                  </p>
                 </div>
               </div>
               <div className="p-3 bg-gray-800 rounded-lg mb-4 flex items-center">
                 <AlertTriangle size={18} className="text-yellow-400 mr-2" />
                 <p className="text-sm">
-                  Only {selectedPool.maxPlayers - selectedPool.playersCount} spots remaining! Game
-                  starts in {selectedPool.timeLeft}
+                  Only {selectedPool.maxPlayers - selectedPool.playersCount}{" "}
+                  spots remaining! Game starts in {selectedPool.timeLeft}
                 </p>
               </div>
               <button
                 className={`w-full py-3 rounded-lg font-bold text-center ${
-                  isStaking ? "bg-gray-700 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+                  isStaking
+                    ? "bg-gray-700 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-700"
                 } transition-colors`}
                 onClick={handleStake}
                 disabled={isStaking}
@@ -483,14 +605,18 @@ const PoolsInterface: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Notification toast */}
-      <motion.div 
+      <motion.div
         className={`fixed bottom-4 right-4 bg-gray-800 border-l-4 border-yellow-500 text-white p-4 rounded shadow-lg max-w-sm ${
-          showNotification ? 'block' : 'hidden'
+          showNotification ? "block" : "hidden"
         }`}
         initial={{ opacity: 0, y: 50, x: 0 }}
-        animate={showNotification ? { opacity: 1, y: 0, x: 0 } : { opacity: 0, y: 50, x: 0 }}
+        animate={
+          showNotification
+            ? { opacity: 1, y: 0, x: 0 }
+            : { opacity: 0, y: 50, x: 0 }
+        }
         transition={{ duration: 0.3 }}
       >
         <p>{notificationMessage}</p>
