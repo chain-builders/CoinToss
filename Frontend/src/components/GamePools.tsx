@@ -20,6 +20,7 @@ import { formatUnits } from "ethers";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { parseEther } from "viem";
+import { formatEntryFee } from "../utils/convertion";
 
 // Define types for the pool object
 interface Pool {
@@ -135,7 +136,7 @@ const PoolsInterface: React.FC = () => {
 
       const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
         id: Number(pool.poolId),
-        entryFee: BigInt(pool.entryFee) / 10n ** 16n,
+        entryFee: BigInt(pool.entryFee),
         maxParticipants: Number(pool.maxParticipants),
         currentParticipants: Number(pool.currentParticipants),
         prizePool: Number(pool.prizePool),
@@ -260,21 +261,31 @@ const PoolsInterface: React.FC = () => {
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
     try {
+      console.log("Joining Pool:", {
+        poolId,
+        entryFeeRaw: entryFee.toString(),
+        entryFeeFormatted: formatEntryFee(entryFee),
+        entryFeeInWei: entryFee,
+      });
       writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: ABI.abi,
         functionName: "joinPool",
         args: [BigInt(poolId)],
-        value: parseEther(entryFee.toString()),
+        value: entryFee,
+        gas: BigInt(300000),
       });
       setJoining(true);
     } catch (err) {
       console.error("Error joining pool:", err);
+      console.error("Transaction Error:", {
+        error,
+        poolId,
+        entryFee: formatEntryFee(entryFee),
+      });
       setJoining(false);
     }
-  };
-
-  // Function to handle pool selection
+  }; // Function to handle pool selection
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
@@ -509,7 +520,7 @@ const PoolsInterface: React.FC = () => {
               <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <p className="text-gray-400">Stake</p>
-                  <p className="font-medium">{pool.entryFee.toString()}</p>
+                  <p className="font-medium">{formatEntryFee(pool.entryFee)}</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
