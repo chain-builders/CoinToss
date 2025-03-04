@@ -532,7 +532,6 @@ const PoolsInterface: React.FC = () => {
               >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
-                <Coins className="w-4 h-4 text-yellow-400 " />
                 <span className="text-[#facc15]">{winner.amount}</span>
                 <span className="ml-1 text-xs text-gray-500">
                   {winner.time}
