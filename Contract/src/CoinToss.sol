@@ -47,6 +47,15 @@ contract CoinToss is Ownable {
         bool prizeClaimed;
     }
 
+    struct PoolInfo {
+        uint poolId;
+        uint entryFee;
+        uint maxParticipants;
+        uint currentParticipants;
+        uint prizePool;
+        PoolStatus status;
+    }
+
 
     uint public poolCount;
     mapping(uint => Pool) public pools;
@@ -305,5 +314,21 @@ contract CoinToss is Ownable {
         
         return (isParticipant, isEliminated, isWinner, hasClaimed);
     }
+
+    function getAllPools() external view returns (PoolInfo[] memory) {
+        PoolInfo[] memory allPools = new PoolInfo[](poolCount);
+        for (uint i = 0; i < poolCount; i++) {
+            Pool storage pool = pools[i];
+            allPools[i] = PoolInfo({
+                poolId: i,
+                entryFee: pool.entryFee,
+                maxParticipants: pool.maxParticipants,
+                currentParticipants: pool.currentParticipants,
+                prizePool: pool.prizePool,
+                status: pool.status
+            });
+        }
+    return allPools;
+}
 
 }
