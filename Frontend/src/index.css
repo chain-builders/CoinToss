@@ -1,0 +1,9 @@
+.no-scrollbar {
+  overflow: hidden;
+  white-space: nowrap;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Chrome, Safari */
+}
