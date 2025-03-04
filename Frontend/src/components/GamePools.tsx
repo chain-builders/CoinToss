@@ -23,21 +23,6 @@ import { parseEther } from "viem";
 import { formatEntryFee } from "../utils/convertion";
 
 // Define types for the pool object
-interface Pool {
-  id: number;
-  name: string;
-  status: string;
-  stake: string;
-  players: string;
-  timeLeft: string;
-  playersCount: number;
-  maxPlayers: number;
-  percentFull: number;
-  popularity: string;
-  previousWinners: number;
-  averageTime: string;
-}
-
 interface PoolInterface {
   id: number;
   entryFee: BigInt;
@@ -58,14 +43,14 @@ interface RecentWinner {
 }
 
 const PoolsInterface: React.FC = () => {
-  const [pools, setPools] = useState<Pool[]>([]);
+  const [pools, setPools] = useState<PoolInterface[]>([]);
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
-  const [featuredPool, setFeaturedPool] = useState<Pool | null>(null);
+  const [featuredPool, setFeaturedPool] = useState<PoolInterface | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
@@ -127,8 +112,6 @@ const PoolsInterface: React.FC = () => {
 
   useEffect(() => {
     if (allPools) {
-      console.log("Fetched pool data:", allPools);
-
       // Check if allPools is a valid array
       if (!Array.isArray(allPools)) {
         throw new Error("Invalid pool data format");
@@ -149,8 +132,6 @@ const PoolsInterface: React.FC = () => {
       setNewPools(transformedPools);
     }
   }, [allPools]);
-
-  console.log(allPools);
 
   // Live update pools periodically to create urgency
   useEffect(() => {
@@ -335,6 +316,20 @@ const PoolsInterface: React.FC = () => {
     }
   };
 
+  // set pool names
+  const setPoolNames = (poolId: number) => {
+    const poolNames = [
+      "Aqua Fortune Pool",
+      "Crypto Waves",
+      "DeFi Dive",
+      "Ether Oasis",
+      "Blockchain Rapids",
+      "Moonshot Lagoon",
+      "Whale's Haven",
+      "Staking Sanctuary",
+    ];
+    return poolNames[poolId];
+  };
   // Function to determine popularity icon
   const getPopularityIcon = (popularity: string) => {
     switch (popularity) {
@@ -369,7 +364,7 @@ const PoolsInterface: React.FC = () => {
       </div>
 
       {/* Featured "hot" pool - creates FOMO */}
-      {featuredPool && (
+      {/* {featuredPool && (
         <motion.div
           className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
@@ -436,9 +431,8 @@ const PoolsInterface: React.FC = () => {
             Join This Pool
           </button>
         </motion.div>
-      )}
+      )} */}
 
-      {/* Recent winners ticker - social proof */}
       <div className="mb-6 bg-gray-800 p-3 rounded-lg overflow-hidden">
         <div className="text-sm font-medium mb-2 flex items-center">
           <Trophy size={16} className="text-yellow-400 mr-2" />
@@ -475,12 +469,12 @@ const PoolsInterface: React.FC = () => {
 
       {/* Pool selection grid */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-4">Available Poolsssss</h2>
+        <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {newPools.map((pool) => (
             <motion.div
               key={pool.id}
-              className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
+              className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
                 selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
               } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
                 showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
@@ -503,7 +497,7 @@ const PoolsInterface: React.FC = () => {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-bold flex items-center">
-                  {/* {setPoolNames(pool.id)} */}
+                  {setPoolNames(pool.id)}
                   {pool.poolStatus === 1 && (
                     <Sparkles size={16} className="ml-2 text-yellow-400" />
                   )}
@@ -524,11 +518,14 @@ const PoolsInterface: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
-                  <p className="font-medium">{pool.players}</p>
+
+                  <p className="font-medium">
+                    {pool.currentParticipants}/{pool.maxParticipants}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-gray-400">Time Left</p>
-                  <p className="font-medium">{pool.timeLeft}</p>
+                  <p className="text-gray-400">PoolPrice</p>
+                  <p className="font-medium">{pool.prizePool} core</p>
                 </div>
               </div>
 
