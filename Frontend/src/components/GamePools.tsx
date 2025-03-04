@@ -544,7 +544,7 @@ const PoolsInterface: React.FC = () => {
 
       {/* Pool selection grid */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-4">Available Pools</h2>
+        <h2 className="text-xl font-bold mb-4">Available Poolsssss</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {newPools.map((pool) => (
             <motion.div
