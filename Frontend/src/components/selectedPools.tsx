@@ -72,6 +72,7 @@ const RenderMyPoolsTab = () => {
     <div className="grid md:grid-cols-2">
       <motion.div
         className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
+        key={pools.id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
