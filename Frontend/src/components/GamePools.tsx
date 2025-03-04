@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useAccount, useReadContract, useBalance,useWriteContract, useWaitForTransactionReceipt  } from "wagmi";
-import { parseEther } from "viem";
-
+import {
+  useAccount,
+  useBalance,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useReadContract,
+} from "wagmi";
 import {
   Sparkles,
   Trophy,
@@ -15,8 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatUnits } from "ethers";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
-
-
+import { parseEther } from "viem";
 
 // Define types for the pool object
 interface Pool {
@@ -71,7 +74,12 @@ const PoolsInterface: React.FC = () => {
     { name: "LuckyStrike", amount: "2,100", time: "8m ago" },
   ]);
 
-  const { writeContract,data: hash,isPending: isWritePending, error,} = useWriteContract();
+  const {
+    writeContract,
+    data: hash,
+    isPending: isWritePending,
+    error,
+  } = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
 
@@ -82,7 +90,6 @@ const PoolsInterface: React.FC = () => {
   } = useBalance({
     address: address,
     chainId: 1114,
-
   });
 
   const fetchPools = async (poolId: number) => {
@@ -109,12 +116,8 @@ const PoolsInterface: React.FC = () => {
     };
   };
 
-  
   // all pools
-  const {
-    data: allPools,
-   
-  } = useReadContract({
+  const { data: allPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
     functionName: "getAllPools",
@@ -124,7 +127,7 @@ const PoolsInterface: React.FC = () => {
   useEffect(() => {
     if (allPools) {
       console.log("Fetched pool data:", allPools);
-  
+
       // Check if allPools is a valid array
       if (!Array.isArray(allPools)) {
         throw new Error("Invalid pool data format");
@@ -132,7 +135,7 @@ const PoolsInterface: React.FC = () => {
 
       const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
         id: Number(pool.poolId),
-        entryFee: BigInt(pool.entryFee)/10n ** 16n, 
+        entryFee: BigInt(pool.entryFee) / 10n ** 16n,
         maxParticipants: Number(pool.maxParticipants),
         currentParticipants: Number(pool.currentParticipants),
         prizePool: Number(pool.prizePool),
@@ -141,17 +144,12 @@ const PoolsInterface: React.FC = () => {
         maxWinners: Number(pool.maxWinners),
         currentActiveParticipants: Number(pool.currentActiveParticipants),
       }));
-  
-      
+
       setNewPools(transformedPools);
     }
   }, [allPools]);
 
-
-  console.log(allPools)
-  
-
-
+  console.log(allPools);
 
   // Live update pools periodically to create urgency
   useEffect(() => {
@@ -247,22 +245,12 @@ const PoolsInterface: React.FC = () => {
     return () => clearInterval(resetInterval);
   }, [pools]);
 
-
-
-
-
-
-
-
-
-
-// join pool function
+  // join pool function
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
-  useWaitForTransactionReceipt({
-    hash,
-  });
-  
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   useEffect(() => {
     if (isConfirmed) {
@@ -270,8 +258,7 @@ const PoolsInterface: React.FC = () => {
     }
   }, [isConfirmed]);
 
-
-  const handleJoinPool = async (poolId:number,entryFee:BigInt) => {
+  const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
     try {
       writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -286,100 +273,37 @@ const PoolsInterface: React.FC = () => {
       setJoining(false);
     }
   };
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   // Function to handle pool selection
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
-
-    setStakeAmount(Number(pool.entryFee));
+    setStakeAmount(parseInt(pool.stake.replace("$", ""), 10));
   };
-  
-  // function set pool name;
-  const setPoolNames=(poolId:number)=>{
-    let poolNames=["High Rollers","Quick Play","Beginners","Weekend Special","Last Chance"]
-    return poolNames[poolId];
-  }
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPool(null); // Clear selected pool
   };
 
-
-
   // Function to handle staking and entering a pool
   const handleStake = async () => {
     if (!selectedPool) return;
-  
+
     try {
-      setIsStaking(true); 
+      setIsStaking(true);
       const tx = await handleJoinPool(selectedPool.id, selectedPool.entryFee);
       await tx.wait();
-  
-    
+
       setUserBalance((prevBalance) => prevBalance - stakeAmount);
       closeModal();
     } catch (error) {
       console.error("Transaction failed:", error);
       showPoolNotification("Transaction failed. Please try again.");
     } finally {
-      setIsStaking(false); 
+      setIsStaking(false);
     }
   };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   // Function to show notifications
   const showPoolNotification = (message: string) => {
@@ -394,7 +318,6 @@ const PoolsInterface: React.FC = () => {
       case 1:
         return "text-blue-400";
       case 2:
-
         return "text-yellow-400";
       default:
         return "text-gray-400";
@@ -414,7 +337,6 @@ const PoolsInterface: React.FC = () => {
         return null;
     }
   };
-
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Balance and stats bar */}
@@ -515,23 +437,21 @@ const PoolsInterface: React.FC = () => {
           <motion.div
             className="flex space-x-4"
             animate={{ x: ["0%", "-100%"] }}
-            transition={
-              {
-                duration: 20,
-                ease: "linear",
-                repeat: Infinity,
-                repeatType: "loop",
-              }
-            }
+            transition={{
+              duration: 20,
+              ease: "linear",
+              repeat: Infinity,
+              repeatType: "loop",
+            }}
           >
             {recentWinners.concat(recentWinners).map((winner, i) => (
               <div
                 key={i}
                 className="inline-block bg-gray-700 px-3 py-1 rounded-lg"
-
               >
                 <span className="font-medium text-white">{winner.name}</span>
                 <span className="mx-1 text-gray-400">won</span>
+
                 <span className="text-[#facc15]">{winner.amount}</span>
                 <span className="ml-1 text-xs text-gray-500">
                   {winner.time}
@@ -551,9 +471,7 @@ const PoolsInterface: React.FC = () => {
               key={pool.id}
               className={`border border-gray-800 rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
                 selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
-
               } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
-
                 showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
               }`}
               onClick={() => handlePoolSelect(pool)}
@@ -574,21 +492,17 @@ const PoolsInterface: React.FC = () => {
             >
               <div className="flex justify-between items-start">
                 <h3 className="font-bold flex items-center">
-
-                  {setPoolNames(pool.id)}
+                  {/* {setPoolNames(pool.id)} */}
                   {pool.poolStatus === 1 && (
                     <Sparkles size={16} className="ml-2 text-yellow-400" />
-
                   )}
                 </h3>
                 <span
                   className={`text-sm font-medium ${getStatusColor(
-
                     pool.poolStatus
                   )}`}
                 >
                   {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
-
                 </span>
               </div>
 
@@ -599,9 +513,11 @@ const PoolsInterface: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
-                  <p className="font-medium">
-                    {pool.currentActiveParticipants}/{pool.maxParticipants}
-                  </p>
+                  <p className="font-medium">{pool.players}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Time Left</p>
+                  <p className="font-medium">{pool.timeLeft}</p>
                 </div>
               </div>
 
@@ -610,9 +526,7 @@ const PoolsInterface: React.FC = () => {
                 <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${
-
                       pool.poolStatus === 1 ? "bg-yellow-500" : "bg-blue-500"
-
                     }`}
                     // style={{ width: `${pool.percentFull}%` }}
                   />{" "}
@@ -652,7 +566,7 @@ const PoolsInterface: React.FC = () => {
 
               {/* Modal content */}
               <h3 className="text-xl font-bold mb-4">
-                Join {selectedPool.name}
+                {/* Join {selectedPool.} */}
               </h3>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -674,7 +588,6 @@ const PoolsInterface: React.FC = () => {
                   Only{" "}
                   {selectedPool.maxParticipants -
                     selectedPool.currentParticipants}{" "}
-
                   spots remaining! Game starts in {selectedPool.timeLeft}
                 </p>
               </div>
