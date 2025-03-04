@@ -256,4 +256,33 @@ contract CoinTossTest is Test {
         vm.prank(jerry);
         coinToss.claimPrize(0);
     }
+
+    function testGetAllPools() public {
+        
+        vm.prank(owner);
+        coinToss.createPool(1 ether, 10); 
+        vm.prank(owner);
+        coinToss.createPool(0.5 ether, 5); 
+
+        
+        CoinToss.PoolInfo[] memory allPools = coinToss.getAllPools();
+
+       
+        assertEq(allPools.length, 2, "Incorrect number of pools");
+
+        
+        assertEq(allPools[0].poolId, 0, "Incorrect pool ID for Pool 0");
+        assertEq(allPools[0].entryFee, 1 ether, "Incorrect entry fee for Pool 0");
+        assertEq(allPools[0].maxParticipants, 10, "Incorrect max participants for Pool 0");
+        assertEq(allPools[0].currentParticipants, 0, "Incorrect current participants for Pool 0");
+        assertEq(allPools[0].prizePool, 0, "Incorrect prize pool for Pool 0");
+        assertEq(uint(allPools[0].status), uint(CoinToss.PoolStatus.OPENED), "Incorrect status for Pool 0");
+
+        assertEq(allPools[1].poolId, 1, "Incorrect pool ID for Pool 1");
+        assertEq(allPools[1].entryFee, 0.5 ether, "Incorrect entry fee for Pool 1");
+        assertEq(allPools[1].maxParticipants, 5, "Incorrect max participants for Pool 1");
+        assertEq(allPools[1].currentParticipants, 0, "Incorrect current participants for Pool 1");
+        assertEq(allPools[1].prizePool, 0, "Incorrect prize pool for Pool 1");
+        assertEq(uint(allPools[1].status), uint(CoinToss.PoolStatus.OPENED), "Incorrect status for Pool 1");
+    }
 }
