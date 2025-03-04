@@ -10,7 +10,7 @@
       "outputs": [],
       "stateMutability": "nonpayable"
     },
-    { 
+    {
       "type": "function",
       "name": "createPool",
       "inputs": [
@@ -37,6 +37,47 @@
         }
       ],
       "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getAllPools",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple[]",
+          "internalType": "struct CoinToss.PoolInfo[]",
+          "components": [
+            { "name": "poolId", "type": "uint256", "internalType": "uint256" },
+            {
+              "name": "entryFee",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "maxParticipants",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "currentParticipants",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "prizePool",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "status",
+              "type": "uint8",
+              "internalType": "enum CoinToss.PoolStatus"
+            }
+          ]
+        }
+      ],
       "stateMutability": "view"
     },
     {

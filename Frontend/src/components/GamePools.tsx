@@ -113,39 +113,47 @@ const PoolsInterface: React.FC = () => {
     args: [1],
   });
 
-  // pool count
-
-  const { data: poolCount, isLoading: isloading } = useReadContract({
+  
+  // all pools
+  const {
+    data: allPools,
+   
+  } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
-    functionName: "poolCount",
+    functionName: "getAllPools",
     args: [],
   });
 
   useEffect(() => {
-    if (poolData) {
-      console.log("Fetched pool data:", poolData);
-      if (!Array.isArray(poolData) || poolData.length < 8) {
+    if (allPools) {
+      console.log("Fetched pool data:", allPools);
+  
+      // Check if allPools is a valid array
+      if (!Array.isArray(allPools)) {
         throw new Error("Invalid pool data format");
       }
 
-      const transformedPool: PoolInterface = {
-        id: Number(1),
-        entryFee: BigInt(poolData[0]) / 10n ** 16n,
-        maxParticipants: Number(poolData[1]),
-        currentParticipants: Number(poolData[2]),
-        prizePool: Number(poolData[3]),
-        currentRound: Number(poolData[4]),
-        poolStatus: Number(poolData[5]),
-        maxWinners: Number(poolData[6]),
-        currentActiveParticipants: Number(poolData[7]),
-      };
-
-      setNewPools([transformedPool]);
+      const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
+        id: Number(pool.poolId),
+        entryFee: BigInt(pool.entryFee)/10n ** 16n, 
+        maxParticipants: Number(pool.maxParticipants),
+        currentParticipants: Number(pool.currentParticipants),
+        prizePool: Number(pool.prizePool),
+        currentRound: Number(pool.currentRound),
+        poolStatus: Number(pool.poolStatus),
+        maxWinners: Number(pool.maxWinners),
+        currentActiveParticipants: Number(pool.currentActiveParticipants),
+      }));
+  
+      
+      setNewPools(transformedPools);
     }
-  }, [poolData]); 
+  }, [allPools]);
 
-  console.log("Transformed pools:", poolCount);
+
+  console.log(allPools[1].currentParticipants)
+  
 
   useEffect(() => {
     const samplePools: Pool[] = [
@@ -389,7 +397,6 @@ const PoolsInterface: React.FC = () => {
         return null;
     }
   };
-
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Balance and stats bar */}
@@ -566,7 +573,7 @@ const PoolsInterface: React.FC = () => {
                 <div>
                   <p className="text-gray-400">Players</p>
                   <p className="font-medium">
-                    {pool.currentActiveParticipants}/{pool.maxParticipants}
+                    {pool.currentParticipants}/{pool.maxParticipants}
                   </p>
                 </div>
               </div>

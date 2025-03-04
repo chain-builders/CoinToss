@@ -1,18 +1,14 @@
-
 import { useState, useEffect } from "react";
-
 
 import RenderGameView from "../components/MyPools";
 import PoolsInterface from "../components/GamePools";
 import RenderMyPoolsTab from "../components/selectedPools";
 import { useReadContract } from "wagmi";
-import contractABI from "./../utils/contract/CoinToss.sol/CoinToss.json";
+import contractABI from "./../utils/contract/CoinToss.json";
 
 const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");
   const [showGameView, setShowGameView] = useState(false);
-  
- 
 
   console.log(contractABI);
 
@@ -28,9 +24,6 @@ const MinorityGame = () => {
     args: [1],
   });
 
-
-
-
   console.log(poolInfo, isLoading);
 
   useEffect(() => {
@@ -40,11 +33,6 @@ const MinorityGame = () => {
       console.log(error);
     }
   }, [poolInfo, isError, error]);
-
-
- 
-
-  
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6 w-full">
@@ -75,7 +63,7 @@ const MinorityGame = () => {
             </div>
           </div>
 
-          {activeTab === "explore" ? <PoolsInterface/> : <RenderMyPoolsTab/>}
+          {activeTab === "explore" ? <PoolsInterface /> : <RenderMyPoolsTab />}
         </>
       ) : (
         RenderGameView()
