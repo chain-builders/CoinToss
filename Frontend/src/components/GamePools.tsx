@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useAccount, useBalance } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import {
   Sparkles,
   Trophy,
