@@ -20,6 +20,7 @@ import { formatUnits } from "ethers";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { parseEther } from "viem";
+import { formatEntryFee } from "../utils/convertion";
 
 // Define types for the pool object
 interface PoolInterface {
@@ -118,7 +119,7 @@ const PoolsInterface: React.FC = () => {
 
       const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
         id: Number(pool.poolId),
-        entryFee: BigInt(pool.entryFee) / 10n ** 16n,
+        entryFee: BigInt(pool.entryFee),
         maxParticipants: Number(pool.maxParticipants),
         currentParticipants: Number(pool.currentParticipants),
         prizePool: Number(pool.prizePool),
@@ -131,8 +132,6 @@ const PoolsInterface: React.FC = () => {
       setNewPools(transformedPools);
     }
   }, [allPools]);
-
- 
 
   // Live update pools periodically to create urgency
   useEffect(() => {
@@ -243,21 +242,31 @@ const PoolsInterface: React.FC = () => {
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
     try {
+      console.log("Joining Pool:", {
+        poolId,
+        entryFeeRaw: entryFee.toString(),
+        entryFeeFormatted: formatEntryFee(entryFee),
+        entryFeeInWei: entryFee,
+      });
       writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: ABI.abi,
         functionName: "joinPool",
         args: [BigInt(poolId)],
-        value: parseEther(entryFee.toString()),
+        value: entryFee,
+        gas: BigInt(300000),
       });
       setJoining(true);
     } catch (err) {
       console.error("Error joining pool:", err);
+      console.error("Transaction Error:", {
+        error,
+        poolId,
+        entryFee: formatEntryFee(entryFee),
+      });
       setJoining(false);
     }
-  };
-
-  // Function to handle pool selection
+  }; // Function to handle pool selection
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
@@ -306,9 +315,9 @@ const PoolsInterface: React.FC = () => {
         return "text-gray-400";
     }
   };
-   
+
   // set pool names
-  const setPoolNames=(poolId:number)=>{
+  const setPoolNames = (poolId: number) => {
     const poolNames = [
       "Aqua Fortune Pool",
       "Crypto Waves",
@@ -317,10 +326,10 @@ const PoolsInterface: React.FC = () => {
       "Blockchain Rapids",
       "Moonshot Lagoon",
       "Whale's Haven",
-      "Staking Sanctuary"
+      "Staking Sanctuary",
     ];
-    return poolNames[poolId]
-  }
+    return poolNames[poolId];
+  };
   // Function to determine popularity icon
   const getPopularityIcon = (popularity: string) => {
     switch (popularity) {
@@ -424,7 +433,6 @@ const PoolsInterface: React.FC = () => {
         </motion.div>
       )} */}
 
-      
       <div className="mb-6 bg-gray-800 p-3 rounded-lg overflow-hidden">
         <div className="text-sm font-medium mb-2 flex items-center">
           <Trophy size={16} className="text-yellow-400 mr-2" />
@@ -506,15 +514,14 @@ const PoolsInterface: React.FC = () => {
               <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <p className="text-gray-400">Stake</p>
-                  <p className="font-medium">{pool.entryFee.toString()} core</p>
+                  <p className="font-medium">{formatEntryFee(pool.entryFee)}</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Players</p>
 
                   <p className="font-medium">
-                    {pool. currentParticipants}/{pool.maxParticipants}
+                    {pool.currentParticipants}/{pool.maxParticipants}
                   </p>
-
                 </div>
                 <div>
                   <p className="text-gray-400">PoolPrice</p>
