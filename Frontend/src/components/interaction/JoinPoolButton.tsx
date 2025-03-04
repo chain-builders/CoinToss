@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
 import CoinTossABI from "../../utils/contract/CoinToss.json";
@@ -12,7 +12,6 @@ type JoinPoolButtonProps = {
 export function JoinPoolButton({ poolId, entryFee }: JoinPoolButtonProps) {
   const [joining, setJoining] = useState(false);
 
-  // Contract write hook for joining a pool
   const {
     writeContract,
     data: hash,
@@ -24,10 +23,14 @@ export function JoinPoolButton({ poolId, entryFee }: JoinPoolButtonProps) {
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash,
-      onSuccess() {
-        setJoining(false);
-      },
     });
+
+  // Use useEffect to handle successful transactions
+  useEffect(() => {
+    if (isConfirmed) {
+      setJoining(false);
+    }
+  }, [isConfirmed]);
 
   // Handle joining a pool
   const handleJoinPool = async () => {
@@ -47,7 +50,6 @@ export function JoinPoolButton({ poolId, entryFee }: JoinPoolButtonProps) {
     }
   };
 
-  // Show error message if there was an error
   if (error) {
     console.error("Error joining pool:", error);
   }
