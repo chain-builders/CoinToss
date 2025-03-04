@@ -20,7 +20,7 @@ import { formatUnits } from "ethers";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { parseEther } from "viem";
-import { formatEntryFee } from "../utils/convertion";
+import { formatEntryFee, formatPrizePool } from "../utils/convertion";
 
 // Define types for the pool object
 interface PoolInterface {
