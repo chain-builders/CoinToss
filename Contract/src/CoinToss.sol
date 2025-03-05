@@ -219,6 +219,10 @@ contract CoinToss is Ownable {
         }
     }
 
+    function concludeRound(uint _poolId, uint _round) external onlyOwner {
+        roundResult(_poolId, _round);
+    }
+
     function getPoolInfo(uint256 _poolId) external view poolExists(_poolId) returns (
         uint entryFee,
         uint maxParticipants,
