@@ -138,7 +138,7 @@ class EthereumPoolManager:
            
                 logs = await self.ws_w3.eth.get_logs({
                     "address": self.ws_w3.to_checksum_address(self.contract_address),
-                    "topics": [[event_signature_hash]]  
+                    "topics":[] 
                 })
                 
                 for log in logs:
