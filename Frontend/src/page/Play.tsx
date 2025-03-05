@@ -3,12 +3,18 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
+  useReadContract,
 } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
-import { GamePlayer, PlayerHistoryEntry, GameStats, NotificationProps } from "../utils/Interfaces";
+import {
+  GamePlayer,
+  PlayerHistoryEntry,
+  GameStats,
+  NotificationProps,
+} from "../utils/Interfaces";
 
 enum PlayerChoice {
   NONE = 0,
@@ -73,10 +79,8 @@ const PlayGame = () => {
     handleSubmit(selected);
   };
 
-
-
   // __________________________________________Handle submission to the smart contract___________________________________________________
-  
+
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected || selected === PlayerChoice.NONE) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
@@ -104,7 +108,7 @@ const PlayGame = () => {
       setIsSubmitting(false);
     }
   };
-// ____________________________________________________________Debugging____________________________________________________________________
+  // ____________________________________________________________Debugging____________________________________________________________________
   useEffect(() => {
     console.log("Debug Transaction States:", {
       hash,
@@ -121,14 +125,12 @@ const PlayGame = () => {
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
-     
     }
 
     if (writeError) {
       console.error("Error making selection:", writeError);
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
- 
     }
 
     if (receiptError) {
@@ -218,10 +220,6 @@ const PlayGame = () => {
         survivors: survivors.length,
       },
     ]);
-  
-
-
-
 
     // -------------------------------- Notification to display when result compile -----------------------------------------------------
     const userSurvived =

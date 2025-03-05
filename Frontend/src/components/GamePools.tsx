@@ -6,7 +6,7 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from "wagmi";
-import { Trophy, Users, Coins,} from "lucide-react";
+import { Trophy, Users, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
@@ -19,11 +19,6 @@ import { useNavigate } from "react-router-dom";
 import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
-
-
-
-
-
   const [pools, setPools] = useState<PoolInterface[]>([]);
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
@@ -35,6 +30,7 @@ const PoolsInterface: React.FC = () => {
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
+  const [joinedPools, setJoinedPools] = useState<number[]>([]);
   const {
     writeContract,
     data: hash,
@@ -50,7 +46,7 @@ const PoolsInterface: React.FC = () => {
   } = useBalance({ address: address, chainId: 1114 });
 
   const { recentWinners, setMyPools } = useContext(MyContext);
-   const navigate=useNavigate()
+  const navigate = useNavigate();
   // all pools
   const { data: allPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
@@ -74,7 +70,7 @@ const PoolsInterface: React.FC = () => {
         prizePool: Number(pool.prizePool),
         poolStatus: pool.status,
       }));
-      console.log(allPools)
+      console.log(allPools);
       setNewPools(transformedPools);
     }
   }, [allPools]);
@@ -86,19 +82,38 @@ const PoolsInterface: React.FC = () => {
     error: txError,
   } = useWaitForTransactionReceipt({ hash });
 
+  // Read contract to check user's joined pools
+  const { data: userJoinedPoolIds } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getUserPools",
+    args: [],
+    account: address,
+  });
+
   useEffect(() => {
+    console.log("Joined Pool IDs:", userJoinedPoolIds);
+    if (userJoinedPoolIds && Array.isArray(userJoinedPoolIds)) {
+      const poolIds = userJoinedPoolIds.map((pool: any) =>
+        typeof pool === "object" && pool !== null
+          ? Number(pool.poolId)
+          : Number(pool)
+      );
+      setJoinedPools(poolIds);
+    }
+
     if (isConfirmed) {
       setJoining(false);
       setIsStaking(false);
       setIsModalOpen(false);
-      navigate("/explore")
+      navigate("/explore");
     }
 
     if (txError) {
       setIsStaking(false);
       setIsModalOpen(false);
     }
-  }, [isConfirmed, txError]);
+  }, [isConfirmed, txError, userJoinedPoolIds]);
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
     setIsStaking(true);
@@ -248,90 +263,96 @@ const PoolsInterface: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {newPools.filter((pool) => pool.poolStatus === 0).map((pool) => (
-            <motion.div
-              key={pool.id}
-              className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
-                selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
-              } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
-                showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
-              }`}
-              onClick={() => handlePoolSelect(pool)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              animate={
-                showPulse[pool.id]
-                  ? {
-                      boxShadow: [
-                        "0 0 0 rgba(59, 130, 246, 0)",
-                        "0 0 15px rgba(59, 130, 246, 0.7)",
-                        "0 0 0 rgba(59, 130, 246, 0)",
-                      ],
-                    }
-                  : {}
-              }
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold flex items-center">
-                  {setPoolNames(pool.id)}
-                  {pool.poolStatus === 1 && (
-                    <Sparkles size={16} className="ml-2 text-yellow-400" />
-                  )}
-                </h3>
-                <span
-                  className={`text-sm font-medium ${getStatusColor(
-                    pool.poolStatus
-                  )}`}
-                >
-                  {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
-                </span>
-              </div>
+          {newPools
+            .filter(
+              (pool) => pool.poolStatus === 0 && !joinedPools.includes(pool.id)
+            )
+            .map((pool) => (
+              <motion.div
+                key={pool.id}
+                className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
+                  selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
+                } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
+                  showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
+                }`}
+                onClick={() => handlePoolSelect(pool)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                animate={
+                  showPulse[pool.id]
+                    ? {
+                        boxShadow: [
+                          "0 0 0 rgba(59, 130, 246, 0)",
+                          "0 0 15px rgba(59, 130, 246, 0.7)",
+                          "0 0 0 rgba(59, 130, 246, 0)",
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex justify-between items-start">
+                  <h3 className="font-bold flex items-center">
+                    {setPoolNames(pool.id)}
+                    {pool.poolStatus === 1 && (
+                      <Sparkles size={16} className="ml-2 text-yellow-400" />
+                    )}
+                  </h3>
+                  <span
+                    className={`text-sm font-medium ${getStatusColor(
+                      pool.poolStatus
+                    )}`}
+                  >
+                    {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
+                  </span>
+                </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Coins size={16} className="text-gray-400" />
-                  <div>
-                    <p className="text-gray-400 text-xs">Stake</p>
-                    <p className="font-medium text-white">
-                      {formatFigures(pool.entryFee)}
-                    </p>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Coins size={16} className="text-gray-400" />
+                    <div>
+                      <p className="text-gray-400 text-xs">Stake</p>
+                      <p className="font-medium text-white">
+                        {formatFigures(pool.entryFee)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Users size={16} className="text-gray-400" />
+                    <div>
+                      <p className="text-gray-400 text-xs">Players</p>
+                      <p className="font-medium text-white">
+                        {pool.currentParticipants}/{pool.maxParticipants}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Trophy size={16} className="text-gray-400" />
+                    <div>
+                      <p className="text-gray-400 text-xs">Pool Prize</p>
+                      <p className="font-medium text-white">
+                        {formatFigures(pool.prizePool)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Users size={16} className="text-gray-400" />
-                  <div>
-                    <p className="text-gray-400 text-xs">Players</p>
-                    <p className="font-medium text-white">
-                      {pool.currentParticipants}/{pool.maxParticipants}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Trophy size={16} className="text-gray-400" />
-                  <div>
-                    <p className="text-gray-400 text-xs">Pool Prize</p>
-                    <p className="font-medium text-white">
-                      {formatFigures(pool.prizePool)}
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Progress bar for pool filling status */}
-              <div className="mt-3">
-                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${
-                      pool.poolStatus === 1 ? "bg-yellow-500" : "bg-yellow-500"
-                    }`}
-                    style={{ width: `${getProgressPercentage(pool)}%` }}
-                  />{" "}
-                  <p className="text-gray-400">Stake</p>
+                {/* Progress bar for pool filling status */}
+                <div className="mt-3">
+                  <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        pool.poolStatus === 1
+                          ? "bg-yellow-500"
+                          : "bg-yellow-500"
+                      }`}
+                      style={{ width: `${getProgressPercentage(pool)}%` }}
+                    />{" "}
+                    <p className="text-gray-400">Stake</p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
         </div>
       </div>
 
