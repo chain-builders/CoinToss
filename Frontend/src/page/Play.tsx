@@ -3,12 +3,11 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
-  useReadContract,
+  useWatchContractEvent,
 } from "wagmi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
-
 
 enum PlayerChoice {
   NONE = 0,
@@ -24,7 +23,7 @@ const PlayGame = () => {
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(null);
   const [round, setRound] = useState(1);
-  const [timer, setTimer] = useState(20);
+  const [timer, setTimer] = useState(20); // Timer starts immediately
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
   const [coinRotation, setCoinRotation] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +35,7 @@ const PlayGame = () => {
   });
 
   const { address } = useAccount();
+
   const {
     writeContract,
     data: hash,
@@ -49,11 +49,14 @@ const PlayGame = () => {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
+  const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
+
   // -----------------------------------------Handle player choice selection------------------------------------------------------
+
   const handleMakeChoice = (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
-    startCoinAnimation();
+    startCoinAnimation(); 
     handleSubmit(selected);
   };
 
@@ -67,7 +70,7 @@ const PlayGame = () => {
 
     try {
       setIsSubmitting(true);
-      const result = await writeContract({
+       writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
@@ -97,25 +100,22 @@ const PlayGame = () => {
     }
   }, [isConfirmed, writeError, receiptError]);
 
-  // Format timer display
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-``
-  };
-
   // ---------------------------------------Start coin flipping animation------------------------------------------------------
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
-    const interval = setInterval(() => {
+    coinFlipInterval.current = setInterval(() => {
       setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
+  };
 
-    setTimeout(() => {
-      clearInterval(interval);
-      setIsCoinFlipping(false);
-      setCoinRotation(0);
-    }, 2000); // Stop animation after 2 seconds
+  // Stop coin flipping animation
+  const stopCoinAnimation = () => {
+    if (coinFlipInterval.current) {
+      clearInterval(coinFlipInterval.current);
+      coinFlipInterval.current = null;
+    }
+    setIsCoinFlipping(false);
+    setCoinRotation(0);
   };
 
   // Show notification
@@ -126,10 +126,13 @@ const PlayGame = () => {
       message,
       subMessage,
     });
-
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, isVisible: false }));
-    }, 4000);
+      if (!isSuccess) {
+        navigate("/explore"); 
+      }
+    }, 3000); 
+   
   };
 
   // Countdown logic
@@ -142,9 +145,61 @@ const PlayGame = () => {
       return () => clearInterval(interval);
     } else if (timer === 0) {
       setIsTimerActive(false);
-      showNotification(false, "Time's up!", "You didn't make a choice in time.");
+      showNotification(false, "Time's up!", "You didn't make a choice in time. You have been eliminated");
+      setTimeout(() => {
+        navigate("/explore");
+      }, 3000);
     }
+    
   }, [isTimerActive, timer]);
+
+   // Format timer display
+   const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Listen for RoundCompleted event from the smart contract
+  useWatchContractEvent({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    eventName: "RoundCompleted",
+    listener: (logs) => {
+      
+      const [log] = logs;
+      
+      
+      const { poolId, roundNumber, winningSelection } = log.args;
+
+      
+      if (poolId === BigInt(pool.id)) {
+        stopCoinAnimation();
+        
+        
+        const readableSelection = winningSelection === 0 ? 'HEADS' : 'TAILS';
+        
+        showNotification(
+          true,
+          `Round ${roundNumber} Completed!`,
+          `Winning selection: ${readableSelection}`
+        );
+        
+        setRound(Number(roundNumber) + 1); 
+        setTimer(20); 
+        setIsTimerActive(true); 
+      }
+    },
+  })
+
+  
+  useEffect(() => {
+    return () => {
+      if (coinFlipInterval.current) {
+        clearInterval(coinFlipInterval.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
@@ -157,8 +212,8 @@ const PlayGame = () => {
             </div>
             <div>
               <div className="text-gray-400 text-xs">ROUND</div>
-              <div className="text-white font-bold">
-                {round} of {pool.rounds}
+              <div className="text-white font-bold text-center">
+                {round}
               </div>
             </div>
           </div>
@@ -290,7 +345,7 @@ const PlayGame = () => {
                   ? "bg-gradient-to-r from-orange-700 to-orange-500"
                   : "bg-gradient-to-r from-yellow-700 to-yellow-500"
               }`}
-              style={{ width: `${(timer / 10) * 100}%` }}
+              style={{ width: `${(timer / 20) * 100}%` }}
             ></div>
           </div>
 
