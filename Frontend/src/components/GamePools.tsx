@@ -15,6 +15,7 @@ import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
+import { useNavigate } from "react-router-dom";
 import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
@@ -49,7 +50,7 @@ const PoolsInterface: React.FC = () => {
   } = useBalance({ address: address, chainId: 1114 });
 
   const { recentWinners, setMyPools } = useContext(MyContext);
-
+   const navigate=useNavigate()
   // all pools
   const { data: allPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
@@ -71,12 +72,9 @@ const PoolsInterface: React.FC = () => {
         maxParticipants: Number(pool.maxParticipants),
         currentParticipants: Number(pool.currentParticipants),
         prizePool: Number(pool.prizePool),
-        currentRound: Number(pool.currentRound),
-        poolStatus: Number(pool.poolStatus),
-        maxWinners: Number(pool.maxWinners),
-        currentActiveParticipants: Number(pool.currentActiveParticipants),
+        poolStatus: pool.status,
       }));
-
+      console.log(allPools)
       setNewPools(transformedPools);
     }
   }, [allPools]);
@@ -93,6 +91,7 @@ const PoolsInterface: React.FC = () => {
       setJoining(false);
       setIsStaking(false);
       setIsModalOpen(false);
+      navigate("/explore")
     }
 
     if (txError) {
@@ -143,7 +142,6 @@ const PoolsInterface: React.FC = () => {
       console.error("Transaction failed:", error);
       showPoolNotification("Transaction failed. Please try again.");
     } finally {
-      // setIsStaking(false);
     }
   };
 
@@ -250,7 +248,7 @@ const PoolsInterface: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {newPools.map((pool) => (
+          {newPools.filter((pool) => pool.poolStatus === 0).map((pool) => (
             <motion.div
               key={pool.id}
               className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
