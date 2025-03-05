@@ -103,8 +103,11 @@ class EthereumPoolManager:
         Listen to contract events using WebSocket provider
         """
         try:
+            # Print WebSocket URL for verification
+            print(f"WebSocket URL: {self.alchemy_ws_url}")  
             # Create WebSocket connection
             w3 = AsyncWeb3(AsyncWeb3.WebSocketProvider(self.alchemy_ws_url))
+            
             
             # Verify connection
             is_connected = await w3.is_connected()
@@ -170,12 +173,15 @@ def parse_arguments():
 async def main():
     # Parse command-line arguments
     args = parse_arguments()
+    alchemy_ws_url=os.getenv("ALCHEMY_WS_URL")
 
     # Create pool manager
     pool_manager = EthereumPoolManager()
 
+
     # Perform pool creation
     pool_manager.create_pool(args.entry_fee, args.max_participants)
+    print(f"WebSocket URL: {alchemy_ws_url}") 
 
     # Listen to events
     await pool_manager.listen_to_events()
