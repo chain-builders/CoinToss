@@ -37,9 +37,9 @@ const Header = () => {
           </div>
           <div className="hidden md:block">
             <h1 className="text-2xl font-bold">
-              <span className="text-red-600">Proba</span>
-              <span className="text-yellow-500">War</span>
-              {/* <span className="text-yellow-500">Percent</span> */}
+              <span className="text-red-600">The</span>
+              <span className="text-white">ONE</span>
+              <span className="text-yellow-500">Percent</span>
             </h1>
             <div className="text-xs text-gray-400 -mt-1">BEAT THE MAJORITY</div>
           </div>

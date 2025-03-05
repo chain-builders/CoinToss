@@ -8,36 +8,7 @@ import { useNavigate } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
-interface GameStats {
-  totalPlayers: number;
-  remainingPlayers: number;
-  rounds: number;
-  roundsCompleted: number;
-  winningChoice: string | null;
-}
-
-interface PlayerHistoryEntry {
-  round: number;
-  players: GamePlayer[];
-  headsCount: number;
-  tailsCount: number;
-  minorityChoice: string;
-  survivors: number;
-}
-
-interface GamePlayer {
-  id: number;
-  address: string;
-  choice: string;
-  survived: boolean;
-}
-
-interface NotificationProps {
-  isVisible: boolean;
-  isSuccess: boolean;
-  message: string;
-  subMessage: string;
-}
+import { GamePlayer, PlayerHistoryEntry, GameStats, NotificationProps } from "../utils/Interfaces";
 
 enum PlayerChoice {
   NONE = 0,
@@ -94,7 +65,7 @@ const PlayGame = () => {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  // Handle player choice selection
+  // -----------------------------------------Handle player choice selection------------------------------------------------------
   const handleMakeChoice = (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
@@ -102,7 +73,10 @@ const PlayGame = () => {
     handleSubmit(selected);
   };
 
-  // Handle submission to the smart contract
+
+
+  // __________________________________________Handle submission to the smart contract___________________________________________________
+  
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected || selected === PlayerChoice.NONE) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
@@ -113,8 +87,6 @@ const PlayGame = () => {
 
     try {
       setIsSubmitting(true);
-      setIsTimerActive(false);
-
       const result = await writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
@@ -130,10 +102,9 @@ const PlayGame = () => {
       showNotification(false, "Transaction Error", errorMessage);
 
       setIsSubmitting(false);
-      setIsTimerActive(true);
     }
   };
-
+// ____________________________________________________________Debugging____________________________________________________________________
   useEffect(() => {
     console.log("Debug Transaction States:", {
       hash,
@@ -144,26 +115,25 @@ const PlayGame = () => {
     });
   }, [hash, isConfirming, isConfirmed, writeError, receiptError]);
 
-  // Handle transaction success or error
+  // -----------------------------------------Handle transaction success or error----------------------------------------
   useEffect(() => {
     if (isConfirmed) {
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
-      setIsTimerActive(true);
+     
     }
 
     if (writeError) {
       console.error("Error making selection:", writeError);
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
-      setIsTimerActive(true);
+ 
     }
 
     if (receiptError) {
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
-      setIsTimerActive(true);
     }
   }, [isConfirmed, writeError, receiptError]);
 
@@ -193,7 +163,7 @@ const PlayGame = () => {
     return players;
   };
 
-  // Handle round completion
+  // ---------------------------------------Handle round completion---------------------------------------------------------------
   const handleRoundEnd = () => {
     stopCoinAnimation();
 
@@ -248,7 +218,12 @@ const PlayGame = () => {
         survivors: survivors.length,
       },
     ]);
+  
 
+
+
+
+    // -------------------------------- Notification to display when result compile -----------------------------------------------------
     const userSurvived =
       (selectedChoice === PlayerChoice.HEADS && minorityChoice === "heads") ||
       (selectedChoice === PlayerChoice.TAILS && minorityChoice === "tails");
@@ -280,7 +255,7 @@ const PlayGame = () => {
     }, 3000);
   };
 
-  // Start coin flipping animation
+  // ---------------------------------------Start coin flipping animation------------------------------------------------------
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
 
