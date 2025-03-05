@@ -1,21 +1,35 @@
 import { formatUnits, BigNumberish } from "ethers";
 
-export const formatFigures = (entryFee: BigNumberish): string => {
+export const formatFigures = (value: BigNumberish): string => {
   try {
-    // Safely format units
-    const formattedFee = formatUnits(entryFee, 18);
+   
+    const formattedValue = formatUnits(value, 18);
+    const numValue = parseFloat(formattedValue);
 
-    // Split into whole and decimal parts
-    const [whole, decimal] = formattedFee.split(".");
+    
+    const formatNumber = (num: number): string => {
+      
+      if (num >= 1_000_000) {
+        const millionsValue = num / 1_000_000;
+        return `${millionsValue.toFixed(2)}M`;
+      }
+      
+      
+      if (num >= 1_000) {
+        const thousandsValue = num / 1_000;
+        return `${thousandsValue.toFixed(2)}K`;
+      }
+      
+     
+      return num.toFixed(2);
+    };
 
-    // If there's a decimal part, trim trailing zeros
-    const cleanDecimal = decimal ? decimal.replace(/0+$/, "") : "";
+    
+    return `${formatNumber(numValue)} CORE`;
 
-    // Return with or without decimal based on existence
-    return cleanDecimal ? `${whole}.${cleanDecimal} CORE` : `${whole} CORE`;
   } catch (error) {
-    console.error("Error formatting fee:", error);
-    // Fallback to string representation if formatting fails
-    return `${entryFee.toString()} CORE`;
+    console.error("Error formatting value:", error);
+   
+    return `${value.toString().slice(0, 10)}... CORE`;
   }
 };
