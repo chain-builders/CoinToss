@@ -170,6 +170,63 @@
     },
     {
       "type": "function",
+      "name": "getUserPoolCount",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getUserPools",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple[]",
+          "internalType": "struct CoinToss.PoolInfo[]",
+          "components": [
+            { "name": "poolId", "type": "uint256", "internalType": "uint256" },
+            {
+              "name": "entryFee",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "maxParticipants",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "currentParticipants",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "prizePool",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "status",
+              "type": "uint8",
+              "internalType": "enum CoinToss.PoolStatus"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "hasUserJoinedPool",
+      "inputs": [
+        { "name": "_poolId", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "isPlayerWinner",
       "inputs": [
         { "name": "_poolId", "type": "uint256", "internalType": "uint256" },
@@ -267,6 +324,16 @@
       ],
       "outputs": [],
       "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "userPools",
+      "inputs": [
+        { "name": "", "type": "address", "internalType": "address" },
+        { "name": "", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
     },
     {
       "type": "event",
