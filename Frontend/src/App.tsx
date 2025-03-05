@@ -1,13 +1,11 @@
 import { RouterProvider } from "react-router-dom";
 import router from "./router";
 import "./App.css";
-
 import "@rainbow-me/rainbowkit/styles.css";
-
 import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
-
 import { WagmiProvider } from "wagmi";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { MyContextProvider } from "./context/contextApi";
 
 const core = {
   id: 1114,
@@ -33,7 +31,7 @@ const core = {
   testnet: true,
 };
 
-const config = getDefaultConfig({
+export const config = getDefaultConfig({
   appName: "CoinToss",
   projectId: "f6944e67672a59c2ac32f0ec4777dfd8",
   chains: [core],
@@ -41,9 +39,6 @@ const config = getDefaultConfig({
 
 
 function App() {
-
-  
-
   const queryClient = new QueryClient();
 
   return (
@@ -51,7 +46,9 @@ function App() {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
-            <RouterProvider router={router} />
+            <MyContextProvider>
+              <RouterProvider router={router} />
+            </MyContextProvider>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>

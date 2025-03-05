@@ -1,9 +1,15 @@
 import  { useState } from 'react';
 
+
 const RenderGameView = () =>{
     const [choice, setChoice] = useState(null);
     const [round, setRound] = useState(1);
     const [showGameView, setShowGameView] = useState(false);
+
+
+   
+
+
 
     const handleMakeChoice = (selected) => {
         setChoice(selected);
@@ -13,6 +19,8 @@ const RenderGameView = () =>{
           setRound(prev => prev + 1);
         }, 2000);
       };
+
+
 
       
 

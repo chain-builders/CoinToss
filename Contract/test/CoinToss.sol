@@ -256,4 +256,114 @@ contract CoinTossTest is Test {
         vm.prank(jerry);
         coinToss.claimPrize(0);
     }
+
+    function testGetAllPools() public {
+        
+        vm.prank(owner);
+        coinToss.createPool(1 ether, 10); 
+        vm.prank(owner);
+        coinToss.createPool(0.5 ether, 5); 
+
+        
+        CoinToss.PoolInfo[] memory allPools = coinToss.getAllPools();
+
+       
+        assertEq(allPools.length, 2, "Incorrect number of pools");
+
+        
+        assertEq(allPools[0].poolId, 0, "Incorrect pool ID for Pool 0");
+        assertEq(allPools[0].entryFee, 1 ether, "Incorrect entry fee for Pool 0");
+        assertEq(allPools[0].maxParticipants, 10, "Incorrect max participants for Pool 0");
+        assertEq(allPools[0].currentParticipants, 0, "Incorrect current participants for Pool 0");
+        assertEq(allPools[0].prizePool, 0, "Incorrect prize pool for Pool 0");
+        assertEq(uint(allPools[0].status), uint(CoinToss.PoolStatus.OPENED), "Incorrect status for Pool 0");
+
+        assertEq(allPools[1].poolId, 1, "Incorrect pool ID for Pool 1");
+        assertEq(allPools[1].entryFee, 0.5 ether, "Incorrect entry fee for Pool 1");
+        assertEq(allPools[1].maxParticipants, 5, "Incorrect max participants for Pool 1");
+        assertEq(allPools[1].currentParticipants, 0, "Incorrect current participants for Pool 1");
+        assertEq(allPools[1].prizePool, 0, "Incorrect prize pool for Pool 1");
+        assertEq(uint(allPools[1].status), uint(CoinToss.PoolStatus.OPENED), "Incorrect status for Pool 1");
+    }
+
+     function testJoinPoolAndRetrieveUserPools() public {
+        vm.prank(owner);
+        coinToss.createPool(0.1 ether, 10);
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 5);
+        vm.prank(owner);
+        coinToss.createPool(0.3 ether, 8);
+
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.1 ether}(0);
+        
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.2 ether}(1);
+
+        vm.prank(jerry);
+        CoinToss.PoolInfo[] memory userPools = coinToss.getUserPools();
+
+        assertEq(userPools.length, 2, "User should have joined 2 pools");
+        assertEq(userPools[0].poolId, 0, "First pool ID should match");
+        assertEq(userPools[1].poolId, 1, "Second pool ID should match");
+        assertEq(userPools[0].entryFee, 0.1 ether, "Entry fee should match first pool");
+        assertEq(userPools[1].entryFee, 0.2 ether, "Entry fee should match second pool");
+    }
+
+    function testUserPoolCount() public {
+       
+        vm.prank(owner);
+        coinToss.createPool(0.1 ether, 10);
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 5);
+        vm.prank(owner);
+        coinToss.createPool(0.3 ether, 8);
+
+        
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.1 ether}(0);
+        
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.2 ether}(1);
+
+        vm.prank(jerry);
+        uint poolCount = coinToss.getUserPoolCount();
+
+        assertEq(poolCount, 2, "User should have joined 2 pools");
+    }
+
+    function testHasUserJoinedPool() public {
+        
+        vm.prank(owner);
+        coinToss.createPool(0.1 ether, 10);
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 5);
+
+        
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.1 ether}(0);
+
+        vm.prank(jerry);
+        bool hasJoinedFirstPool = coinToss.hasUserJoinedPool(0);
+        
+        vm.prank(jerry);
+        bool hasJoinedSecondPool = coinToss.hasUserJoinedPool(1);
+
+        assertTrue(hasJoinedFirstPool, "User should have joined first pool");
+        assertFalse(hasJoinedSecondPool, "User should not have joined second pool");
+    }
+
+    function testCannotJoinPoolTwice() public {
+       
+        vm.prank(owner);
+        coinToss.createPool(0.1 ether, 10);
+
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.1 ether}(0);
+
+        vm.expectRevert("Player has already joined this pool");
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.1 ether}(0);
+    }
+
 }

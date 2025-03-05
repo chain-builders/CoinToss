@@ -1,49 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-} from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
-interface GameStats {
-  totalPlayers: number;
-  remainingPlayers: number;
-  rounds: number;
-  roundsCompleted: number;
-  winningChoice: string | null;
-}
-
-interface PlayerHistoryEntry {
-  round: number;
-  players: GamePlayer[];
-  headsCount: number;
-  tailsCount: number;
-  minorityChoice: string;
-  survivors: number;
-}
-
-interface GamePlayer {
-  id: number;
-  address: string;
-  choice: string;
-  survived: boolean;
-}
-
-interface NotificationProps {
-  isVisible: boolean;
-  isSuccess: boolean;
-  message: string;
-  subMessage: string;
-}
-
-enum PlayerChoice {
-  NONE = 0,
-  HEADS = 1,
-  TAILS = 2,
-}
+// ... (other interfaces and types)
 
 const PlayGame = () => {
   const navigate = useNavigate();
@@ -74,11 +35,9 @@ const PlayGame = () => {
   });
   const [gameOver, setGameOver] = useState(false);
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
-  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
-    null
-  );
-  const [hasAttemptedSelection, setHasAttemptedSelection] = useState(false); // Track if user has attempted selection
+  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
 
   const { address } = useAccount();
   const {
@@ -88,61 +47,42 @@ const PlayGame = () => {
     error: writeError,
   } = useWriteContract();
 
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: receiptError,
-  } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } =
+    useWaitForTransactionReceipt({ hash });
 
   // Handle player choice selection
   const handleMakeChoice = (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3) return;
+    if (!isTimerActive || timer <= 3) return; // Prevent selection if timer is <= 3 seconds
     setSelectedChoice(selected);
     startCoinAnimation();
-    handleSubmit(selected);
+    handleSubmit(selected); // Trigger the contract call
   };
 
   // Handle submission to the smart contract
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected || selected === PlayerChoice.NONE) {
-      showNotification(false, "Error", "Please select HEADS or TAILS");
+      alert("Please select HEADS or TAILS");
       return;
     }
 
-    const hardcodedPoolId = 0;
-
     try {
       setIsSubmitting(true);
-      setIsTimerActive(false);
+      setHasAttemptedSelection(true); // Mark that the user has attempted a selection
+      setIsTimerActive(false); // Pause the timer while the transaction is being processed
 
-      const result = await writeContract({
+      writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
-        args: [BigInt(hardcodedPoolId), selected],
+        args: [BigInt(selectedPool?.id || 0), selected],
       });
-
-      console.log("Transaction result:", result);
-    } catch (err: any) {
-      console.error("Transaction Error:", err);
-
-      const errorMessage = err.message || "Transaction failed";
-      showNotification(false, "Transaction Error", errorMessage);
-
+    } catch (err) {
+      console.error("Error making selection:", err);
       setIsSubmitting(false);
-      setIsTimerActive(true);
+      setIsTimerActive(true); // Resume the timer if the transaction fails
+      setHasAttemptedSelection(false); // Allow the user to retry
     }
   };
-
-  useEffect(() => {
-    console.log("Debug Transaction States:", {
-      hash,
-      isConfirming,
-      isConfirmed,
-      writeError,
-      receiptError,
-    });
-  }, [hash, isConfirming, isConfirmed, writeError, receiptError]);
 
   // Handle transaction success or error
   useEffect(() => {
@@ -150,20 +90,16 @@ const PlayGame = () => {
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
-      setIsTimerActive(true);
+      setIsTimerActive(true); // Resume the timer
+      setHasAttemptedSelection(false); // Reset the attempt state
     }
 
-    if (writeError) {
-      console.error("Error making selection:", writeError);
+    if (writeError || receiptError) {
+      console.error("Error making selection:", writeError || receiptError);
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
-      setIsTimerActive(true);
-    }
-
-    if (receiptError) {
-      showNotification(false, "Error!", "Failed to make selection.");
-      setIsSubmitting(false);
-      setIsTimerActive(true);
+      setIsTimerActive(true); // Resume the timer
+      setHasAttemptedSelection(false); // Allow the user to retry
     }
   }, [isConfirmed, writeError, receiptError]);
 
@@ -171,9 +107,7 @@ const PlayGame = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Generate mock players with random choices
@@ -183,9 +117,7 @@ const PlayGame = () => {
       const playerChoice = Math.random() > 0.5 ? "heads" : "tails";
       players.push({
         id: i,
-        address: `0x${Math.random()
-          .toString(16)
-          .substring(2, 8)}...${Math.random().toString(16).substring(2, 6)}`,
+        address: `0x${Math.random().toString(16).substring(2, 8)}...${Math.random().toString(16).substring(2, 6)}`,
         choice: i === 1 && userChoice ? userChoice : playerChoice,
         survived: false,
       });
@@ -200,11 +132,7 @@ const PlayGame = () => {
     if (!selectedChoice) {
       // If no choice was made, eliminate the player
       setGameStage("results");
-      showNotification(
-        false,
-        "Eliminated!",
-        "You didn't make a choice in time!"
-      );
+      showNotification(false, "Eliminated!", "You didn't make a choice in time!");
       setTimeout(() => {
         setGameStage("gameOver");
         setGameOver(true);
@@ -302,11 +230,7 @@ const PlayGame = () => {
   };
 
   // Show notification
-  const showNotification = (
-    isSuccess: boolean,
-    message: string,
-    subMessage: string
-  ) => {
+  const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
     setNotification({
       isVisible: true,
       isSuccess,
@@ -342,125 +266,6 @@ const PlayGame = () => {
       }
     };
   }, []);
-
-  // Notification component
-  const RoundNotification = () => {
-    if (!notification.isVisible) return null;
-
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
-        <div
-          className={`p-8 rounded-xl border-4 ${
-            notification.isSuccess
-              ? "border-green-500 bg-green-900"
-              : "border-red-500 bg-red-900"
-          } bg-opacity-90 text-center max-w-md transform scale-in-center`}
-        >
-          <div
-            className={`text-6xl mb-4 ${
-              notification.isSuccess ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {notification.isSuccess ? "🏆" : "❌"}
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {notification.message}
-          </h2>
-          <p
-            className={`text-xl ${
-              notification.isSuccess ? "text-green-300" : "text-red-300"
-            }`}
-          >
-            {notification.subMessage}
-          </p>
-
-          {notification.isSuccess && (
-            <div className="mt-6 text-white">
-              <div className="font-bold">
-                Next round starting in 3 seconds...
-              </div>
-              <div className="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden">
-                <div className="bg-green-500 h-full animate-progress-bar"></div>
-              </div>
-            </div>
-          )}
-
-          {!notification.isSuccess && (
-            <button
-              className="mt-6 px-6 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-bold transition-colors"
-              onClick={() =>
-                setNotification((prev) => ({ ...prev, isVisible: false }))
-              }
-            >
-              Close
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Game Over screen
-  const GameOverScreen = () => {
-    if (!gameOver) return null;
-
-    const userWon = winners.length === 1 && winners[0].id === 1;
-
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
-        <div className="p-8 rounded-xl border-4 border-yellow-500 bg-gray-900 bg-opacity-95 text-center max-w-lg transform scale-in-center">
-          <div className="text-6xl mb-4 text-yellow-500">
-            {userWon ? "🏆" : "🎮"}
-          </div>
-          <h2 className="text-4xl font-bold text-white mb-4">
-            {userWon ? "CONGRATULATIONS!" : "GAME OVER"}
-          </h2>
-          <p className="text-xl text-gray-300 mb-6">
-            {userWon
-              ? `You've won the game with ${gameStats.remainingPlayers} players remaining!`
-              : `You've been eliminated in round ${round} of ${gameStats.rounds}.`}
-          </p>
-
-          <div className="bg-black bg-opacity-50 p-4 rounded-lg text-left mb-6">
-            <h3 className="text-lg font-bold text-yellow-500 mb-2">
-              Game Summary
-            </h3>
-            <p className="text-gray-300">
-              Starting Players: {gameStats.totalPlayers}
-            </p>
-            <p className="text-gray-300">
-              Rounds Completed: {gameStats.roundsCompleted}
-            </p>
-            <p className="text-gray-300">
-              Final Winning Choice: {gameStats.winningChoice}
-            </p>
-          </div>
-
-          <button
-            className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors"
-            onClick={() => {
-              setGameOver(false);
-              setRound(1);
-              setGameStage("choice");
-              setSelectedChoice(null);
-              setGameStats({
-                totalPlayers: 16,
-                remainingPlayers: 16,
-                rounds: 4,
-                roundsCompleted: 0,
-                winningChoice: null,
-              });
-              setPlayerHistory([]);
-              setWinners([]);
-              navigate("/explore");
-            }}
-          >
-            Back to pools
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
@@ -507,20 +312,22 @@ const PlayGame = () => {
       {/* Coin Animation Area */}
       {isCoinFlipping && (
         <div className="absolute z-10 h-48 w-48 flex items-center justify-center">
-          <div
+          <div 
             className="w-32 h-32 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center text-4xl transform transition-all duration-100 border-4 border-yellow-300 shadow-lg"
-            style={{
+            style={{ 
               transform: `rotateY(${coinRotation}deg)`,
-              opacity: coinRotation % 180 < 90 ? "1" : "0.2",
+              opacity: coinRotation % 180 < 90 ? '1' : '0.2'
             }}
           >
-            {coinRotation % 180 < 90 ? "🪙" : "💰"}
+            {coinRotation % 180 < 90 ? '🪙' : '💰'}
           </div>
         </div>
       )}
 
       <div className="flex flex-col md:flex-row gap-6 md:gap-12 justify-center items-center mb-10">
+  
         <div className="relative">
+         
           {selectedChoice === PlayerChoice.HEADS && (
             <div className="absolute -inset-3 bg-yellow-500 opacity-20 blur-xl rounded-full animate-pulse"></div>
           )}
@@ -531,7 +338,7 @@ const PlayGame = () => {
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={!isTimerActive || isCoinFlipping || isSubmitting}
+            disabled={!isTimerActive || isCoinFlipping || isSubmitting || timer <= 3}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">🪙</div>
@@ -543,6 +350,7 @@ const PlayGame = () => {
               )}
             </div>
           </button>
+
         </div>
 
         {/* VS Divider */}
@@ -564,7 +372,7 @@ const PlayGame = () => {
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={!isTimerActive || isCoinFlipping || isSubmitting}
+            disabled={!isTimerActive || isCoinFlipping || isSubmitting || timer <= 3}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">💰</div>
@@ -576,9 +384,10 @@ const PlayGame = () => {
               )}
             </div>
           </button>
+
         </div>
       </div>
-
+     
       {/* Timer Section with Enhanced Drama */}
       <div className="max-w-xl w-full mx-auto px-4">
         <div className="bg-black bg-opacity-80 p-4 rounded-lg border border-gray-800">
@@ -586,11 +395,7 @@ const PlayGame = () => {
             <div className="text-white font-bold text-xl">TIME REMAINING</div>
             <div
               className={`text-2xl font-bold ${
-                timer < 5
-                  ? "text-red-500 animate-pulse"
-                  : timer < 10
-                  ? "text-orange-500"
-                  : "text-yellow-500"
+                timer < 5 ? "text-red-500 animate-pulse" : timer < 10 ? "text-orange-500" : "text-yellow-500"
               }`}
             >
               {formatTime(timer)}
@@ -599,72 +404,4 @@ const PlayGame = () => {
 
           <div className="h-3 bg-gray-900 rounded-full overflow-hidden">
             <div
-              className={`h-full ${
-                timer < 5
-                  ? "bg-gradient-to-r from-red-700 to-red-500 animate-pulse"
-                  : timer < 10
-                  ? "bg-gradient-to-r from-orange-700 to-orange-500"
-                  : "bg-gradient-to-r from-yellow-700 to-yellow-500"
-              }`}
-              style={{ width: `${(timer / 10) * 100}%` }}
-            ></div>
-          </div>
-
-          <div className="mt-4 flex justify-between items-center">
-            <div className="text-sm text-gray-400">
-              <span className="text-yellow-500 font-bold">Tip:</span> The
-              minority option wins!
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Game Stats - Creates Social Proof */}
-      <div className="w-full max-w-4xl px-4 mt-8">
-        <div className="flex justify-between text-xs text-gray-500 px-2">
-          <div>
-            Last winner:{" "}
-            <span className="text-yellow-500">
-              {playerHistory.length > 0
-                ? `${playerHistory[
-                    playerHistory.length - 1
-                  ].minorityChoice.toUpperCase()} (${
-                    playerHistory[playerHistory.length - 1].minorityChoice ===
-                    "heads"
-                      ? Math.round(
-                          (playerHistory[playerHistory.length - 1].headsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
-                      : Math.round(
-                          (playerHistory[playerHistory.length - 1].tailsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
-                  }% chose)`
-                : "HEADS (38% chose)"}
-            </span>
-          </div>
-          <div>
-            Biggest pot today:{" "}
-            <span className="text-yellow-500">1,468 POINTS</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Notification for round results */}
-      <RoundNotification />
-
-      {/* Game Over Screen */}
-      <GameOverScreen />
-    </div>
-  );
-};
-
-export default PlayGame;
+              className={`h-full $
