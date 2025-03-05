@@ -1,8 +1,5 @@
 import { motion } from "framer-motion";
-import {
-  Import,
-  Trophy,
-} from "lucide-react";
+import { Trophy, Users, Coins, PlayCircle } from 'lucide-react';
 
 import { useNavigate } from "react-router-dom";
 
@@ -10,6 +7,7 @@ import { useState, useEffect} from "react";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { PoolInterface } from "../utils/Interfaces";
 import ABI from "../utils/contract/CoinToss.json"
+import { formatFigures } from "../utils/convertion";
 import {useAccount,useBalance,useWriteContract, useWaitForTransactionReceipt,useReadContract,} from "wagmi";
 
 const RenderMyPoolsTab = () => {
@@ -46,9 +44,7 @@ const RenderMyPoolsTab = () => {
       abi: ABI.abi,
       functionName: 'getUserPools',
       args: [],
-      query: {
-        enabled: !!address
-      }
+      account:address
     })
   useEffect(() => {
           if (userPools) {
@@ -70,10 +66,9 @@ const RenderMyPoolsTab = () => {
             }));
             console.log(`raw Poolssssssss ${userPools}`)
             console.log(address)
-            console.log(CORE_CONTRACT_ADDRESS)
-            console.log(ABI.abi)
+            // console.log(CORE_CONTRACT_ADDRESS)
+            // console.log(ABI.abi)
            console.log(transformedPools)
-           console.log(error)
            console.log(isLoading)
             setSelectedPool(transformedPools);
           }
@@ -87,60 +82,82 @@ const RenderMyPoolsTab = () => {
     navigate("/playgame")
      
   }
-
+  const getProgressPercentage = (pools) => {
+    return Math.round((pools.currentParticipants / pools.maxParticipants) * 100);
+  };
   return selectedPool.map((pools) => (
     <div className="grid md:grid-cols-2">
-      <motion.div
-        className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
-        key={pools.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex justify-between items-start">
+          <motion.div 
+      className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
+      key={pools.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ scale: 1.02 }}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center space-x-3">
+          <Trophy size={24} className="text-yellow-400" />
           <div>
-            <h3 className="text-xl font-bold flex items-center text-yellow-400">
-              <Trophy size={18} className="mr-2" /> {pools.name}
-            </h3>
-            <p className="text-gray-400 text-sm">
-              Almost full! Join now before it starts
+            <h3 className="text-xl font-bold text-yellow-400">{pools.name}</h3>
+            <p className="text-gray-400 text-xs mt-1">
+              Round {pools.currentRound}
             </p>
           </div>
-          <div
-            className={`text-sm font-medium ${getStatusColor(pools.poolStatus)}`}
-          >
-            {pools.poolStatus ==1 ? "Filling" : "Starting Soon"}
-          </div>
         </div>
-
-        <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-400">Stake</p>
-            <p className="font-medium text-white">{pools.entryFee}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Players</p>
-            <p className="font-medium text-white">{pools.currentParticipants}</p>
-          </div>
-          {/* <div>
-            <p className="text-gray-400">Time Left</p>
-            <p className="font-medium text-white">{pools.timeLeft}</p>
-          </div> */}
-          <div>
-            <p className="text-gray-400">Pool Prize</p>
-            <p className="font-medium text-white">{pools.prizePool}</p>
-          </div>
-        </div>
-
-        
-
-        <button
-          className="mt-4 bg-gradient-to-r from-yellow-600 to-red-600 text-black font-bold py-2 px-4 rounded-lg w-full transition-colors"
-            onClick={() => handlePlay()}
+        <div 
+          className={`text-sm font-medium ${
+            pools.poolStatus === 1 ? 'text-yellow-500' : 'text-orange-500'
+          }`}
         >
-          Play
-        </button>
-      </motion.div>
+          {pools.poolStatus === 1 ? "Filling" : "Starting Soon"}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
+        <div 
+          className="bg-yellow-500 h-2 rounded-full" 
+          style={{ width: `${getProgressPercentage(pools)}%` }}
+        ></div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+        <div className="flex items-center space-x-2">
+          <Coins size={16} className="text-gray-400" />
+          <div>
+            <p className="text-gray-400 text-xs">Stake</p>
+            <p className="font-medium text-white">{formatFigures(pools.entryFee)}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Users size={16} className="text-gray-400" />
+          <div>
+            <p className="text-gray-400 text-xs">Players</p>
+            <p className="font-medium text-white">
+              {pools.currentParticipants}/{pools.maxParticipants}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Trophy size={16} className="text-gray-400" />
+          <div>
+            <p className="text-gray-400 text-xs">Pool Prize</p>
+            <p className="font-medium text-white">{formatFigures(pools.prizePool)}</p>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        className="mt-4 bg-gradient-to-r from-yellow-600 to-red-600 text-black font-bold py-3 px-4 rounded-lg w-full transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 hover:opacity-90 active:scale-95"
+        onClick={() => handlePlay()}
+      >
+        <PlayCircle size={20} />
+        <span>Play Now</span>
+      </button>
+    </motion.div>
     </div>
   ));
 };
