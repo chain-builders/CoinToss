@@ -10,18 +10,6 @@ const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");
   const [showGameView, setShowGameView] = useState(false);
 
-  const {
-    data: poolInfo,
-    isError,
-    isLoading,
-  } = useReadContract({
-    address: "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9", // 0xC1787fcf4feBb9C9cE680294aF53F5AD709Ad23d.
-    abi: contractABI.abi,
-    functionName: "getPoolInfo",
-    args: [1],
-  });
-
-
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6 w-full">
       {!showGameView ? (

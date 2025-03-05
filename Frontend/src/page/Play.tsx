@@ -3,10 +3,12 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useAccount,
+  useReadContract,
 } from "wagmi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+
 
 enum PlayerChoice {
   NONE = 0,
@@ -56,6 +58,7 @@ const PlayGame = () => {
   };
 
   // __________________________________________Handle submission to the smart contract___________________________________________________
+
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected || selected === PlayerChoice.NONE) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
@@ -98,7 +101,7 @@ const PlayGame = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+``
   };
 
   // ---------------------------------------Start coin flipping animation------------------------------------------------------

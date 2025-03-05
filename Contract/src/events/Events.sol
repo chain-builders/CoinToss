@@ -6,7 +6,7 @@ import "../CoinToss.sol";
 library Events {
     event PoolCreated(uint poolId, uint256 entryFee, uint256 maxParticipants);
     event PlayerJoined(uint poolId, address playerThatJoined);
-    event RoundCompleted(uint poolId, uint round, CoinToss.PlayerChoice);
+    event RoundCompleted(uint poolId, uint round, CoinToss.PlayerChoice winningSelection);
     event PoolCompleted(uint poolId, uint prizePool);
     event RoundWinners(uint poolId, uint round, address[] roundWinners);
     event RoundLosers(uint poolId, uint round, address[] roundWinners);
