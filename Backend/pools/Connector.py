@@ -19,10 +19,10 @@ class EthereumPoolManager:
     def __init__(self):
         # Environment variables
         self.alchemy_ws_url = os.getenv("ALCHEMY_WS_URL")
-        self.alchemy_http_url = os.getenv("ALCHEMY_URL")
+        self.alchemy_http_url = os.getenv("ALCHEMY_HTTP_URL")
         self.contract_address = os.getenv('STAKING_CONTRACT_ADDRESS')
         self.contract_abi_path = os.getenv('CONTRACT_ABI_PATH')
-        self.private_key = os.getenv('CONTRACT_OWNER_PRIVATE_KEY')
+        self.private_key = os.getenv('PRIVATE_KEY')
 
         # Web3 instances
         self.ws_w3 = None
@@ -35,13 +35,13 @@ class EthereumPoolManager:
         if not self.alchemy_ws_url:
             missing_vars.append("ALCHEMY_WS_URL")
         if not self.alchemy_http_url:
-            missing_vars.append("ALCHEMY_URL")
+            missing_vars.append("ALCHEMY_HTTP_URL")
         if not self.contract_address:
             missing_vars.append("STAKING_CONTRACT_ADDRESS")
         if not self.contract_abi_path:
             missing_vars.append("CONTRACT_ABI_PATH")
         if not self.private_key:
-            missing_vars.append("CONTRACT_OWNER_PRIVATE_KEY")
+            missing_vars.append("PRIVATE_KEY")
         
         if missing_vars:
             raise ValueError(f"Missing environment variables: {', '.join(missing_vars)}")
@@ -103,61 +103,65 @@ class EthereumPoolManager:
         Listen to contract events using WebSocket provider
         """
         try:
-            # Create WebSocket connection
-            w3 = AsyncWeb3(AsyncWeb3.WebSocketProvider(self.alchemy_ws_url))
+            self.ws_w3 = await AsyncWeb3(AsyncWeb3.WebSocketProvider(self.alchemy_ws_url))
             
-            # Verify connection
-            is_connected = await w3.is_connected()
+      
+            is_connected = await self.ws_w3.is_connected()
             logger.info(f"Web3 Connection Status: {is_connected}")
             
             if not is_connected:
                 logger.error("Failed to connect to Ethereum network")
                 return
 
-            # Load contract ABI
             contract_abi = self.load_contract_abi()
             
-            # Create contract instance
-            contract = w3.eth.contract(
-                address=w3.to_checksum_address(self.contract_address),
+     
+            contract = self.ws_w3.eth.contract(
+                address=self.ws_w3.to_checksum_address(self.contract_address),
                 abi=contract_abi
             )
+            
 
-            # Get event signature hash for PoolCreated event
-            event_signature_hash = w3.keccak(
+            event_signature_hash = self.ws_w3.keccak(
                 text="PoolCreated(uint256,uint256,uint256)"
             ).hex()
-
-            # Subscribe to logs
-            subscription = await w3.eth.subscribe("logs", {
-                "address": w3.to_checksum_address(self.contract_address),
-                "topics": [event_signature_hash]
+            
+    
+            subscription = await self.ws_w3.eth.subscribe("logs", {
+                "address": self.ws_w3.to_checksum_address(self.contract_address),
+                "topics": [[event_signature_hash]]  
             })
             logger.info(f"Subscribed with ID: {subscription}")
+            
 
-            # Listen to events
-            async for log in w3.eth.get_logs({"address": self.contract_address}):
-                try:
-                    # Decode log event
-                    decoded_log = contract.events.PoolCreated().process_log(log)
-                    
-                    # Extract event details
-                    event_args = decoded_log['args']
-                    logger.info(f"New Pool Created: {event_args}")
-                    
-                    # Additional processing
-                    pool_id = event_args.get('poolId')
-                    entry_fee = event_args.get('entryFee')
-                    max_participants = event_args.get('maxParticipants')
-                    
-                    logger.info(f"Pool Details - ID: {pool_id}, Entry Fee: {entry_fee}, Max Participants: {max_participants}")
+            while True:
+           
+                logs = await self.ws_w3.eth.get_logs({
+                    "address": self.ws_w3.to_checksum_address(self.contract_address),
+                    "topics":[] 
+                })
                 
-                except Exception as log_error:
-                    logger.error(f"Error processing log: {log_error}")
+                for log in logs:
+                    try:
+                        decoded_log = contract.events.PoolCreated().process_log(log)
+                        
 
+                        event_args = decoded_log['args']
+                        logger.info(f"New Pool Created: {event_args}")
+                        
+                        pool_id = event_args.get('poolId')
+                        entry_fee = event_args.get('entryFee')
+                        max_participants = event_args.get('maxParticipants')
+                        
+                        logger.info(f"Pool Details - ID: {pool_id}, Entry Fee: {entry_fee}, Max Participants: {max_participants}")
+                    
+                    except Exception as log_error:
+                        logger.error(f"Error processing log: {log_error}")
+                
+                await asyncio.sleep(5)
+        
         except Exception as e:
             logger.error(f"Event listening error: {e}")
-
 def parse_arguments():
     """Parse command-line arguments for pool creation"""
     parser = argparse.ArgumentParser(description="Ethereum Pool Creation Script")
@@ -168,17 +172,21 @@ def parse_arguments():
     return parser.parse_args()
 
 async def main():
-    # Parse command-line arguments
     args = parse_arguments()
 
-    # Create pool manager
     pool_manager = EthereumPoolManager()
 
-    # Perform pool creation
-    pool_manager.create_pool(args.entry_fee, args.max_participants)
+    create_pool_task = asyncio.create_task(
+        asyncio.to_thread(
+            pool_manager.create_pool, 
+            args.entry_fee, 
+            args.max_participants
+        )
+    )
+    
+    listen_events_task = asyncio.create_task(pool_manager.listen_to_events())
 
-    # Listen to events
-    await pool_manager.listen_to_events()
+    await asyncio.gather(create_pool_task, listen_events_task)
 
 if __name__ == "__main__":
     try:
