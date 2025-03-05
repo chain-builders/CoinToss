@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework import status
-from .Connector import EthereumEventListener
+from .Connector import EthereumPoolManager
 from .models import Pool, Player
 
 
@@ -15,7 +15,7 @@ def create_pool(request):
     if entry_fee <= 0:
         return Response({"error": "Entry fee must be greater than zero"}, status=400)
     
-    blockchain = BlockchainConnector()
+    blockchain = EthereumPoolManager()
     
     try:
         result = blockchain.create_pool(entry_fee, max_participants)
@@ -53,7 +53,7 @@ def join_pool(request):
         return Response({"error": "Pool does not exist"}, status=status.HTTP_400_BAD_REQUEST)
     
 
-    blockchain = EthereumEventListener()
+    blockchain = EthereumPoolManager()
     
     try:
         result = blockchain.join_pool(pool_id, player_address)
