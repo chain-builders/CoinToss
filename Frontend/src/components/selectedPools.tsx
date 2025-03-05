@@ -69,8 +69,8 @@ const RenderMyPoolsTab = () => {
     }
   }, [userPools]);
 
-  const handlePlay = () => {
-    navigate("/playgame");
+  const handlePlay = (pools:PoolInterface) => {
+    navigate("/playgame", {state:{pools}});
   };
   const getProgressPercentage = (pools) => {
     return Math.round(
@@ -166,7 +166,7 @@ const RenderMyPoolsTab = () => {
           className={`mt-4 bg-gradient-to-r from-yellow-600 to-red-600 text-black font-bold py-3 px-4 rounded-lg w-full transition-all duration-300 ease-in-out flex items-center justify-center space-x-2  active:scale-95 ${
             pools.currentParticipants !== pools.maxParticipants ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-95"
           }`}
-          onClick={() => handlePlay()}
+          onClick={() => handlePlay(pools)}
           disabled={pools.currentParticipants !== pools.maxParticipants}
         >
           <PlayCircle size={20} />
