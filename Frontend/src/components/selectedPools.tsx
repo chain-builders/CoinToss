@@ -1,33 +1,19 @@
 import { motion } from "framer-motion";
 import {
-  Sparkles,
+  Import,
   Trophy,
-  Clock,
-  Users,
-  TrendingUp,
-  Star,
-  AlertTriangle,
 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 
-import { useState } from "react";
+import { useState, useEffect} from "react";
+import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+import { PoolInterface } from "../utils/Interfaces";
+import ABI from "../utils/contract/CoinToss.json"
+import {useAccount,useBalance,useWriteContract, useWaitForTransactionReceipt,useReadContract,} from "wagmi";
 
-interface Pool {
-  id: number;
-  name: string;
-  status: string;
-  stake: string;
-  players: string;
-  timeLeft: string;
-  playersCount: number;
-  maxPlayers: number;
-  percentFull: number;
-  popularity: string;
-  previousWinners: number;
-  averageTime: string;
-}
 const RenderMyPoolsTab = () => {
-  const [selectedPool, setSelectedPool] = useState<Pool[] | null>(null);
+  const [selectedPool, setSelectedPool] = useState<PoolInterface[]>([]);
   const [showGameView, setShowGameView] = useState(false);
   const navigate=useNavigate()
 
@@ -44,23 +30,37 @@ const RenderMyPoolsTab = () => {
     }
   };
 
-  const featuredPool: Pool[] = [
-    {
-      id: 1,
-      name: "High Rollers",
-      status: "filling",
-      stake: "2 core",
-      players: "12/16",
-      timeLeft: "03:42",
-      playersCount: 12,
-      maxPlayers: 16,
-      percentFull: 75,
-      popularity: "high",
-      previousWinners: 142,
-      averageTime: "4m",
-    },
   
-  ];
+  const { data: myPools } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getUserPools",
+    args: [],
+  });
+
+  useEffect(() => {
+          if (myPools) {
+            
+            if (!Array.isArray(myPools)) {
+              throw new Error("Invalid pool data format");
+            }
+  
+            const transformedPools: PoolInterface[] = myPools.map((pool, index) => ({
+              id: Number(pool.poolId),
+              entryFee: BigInt(pool.entryFee),
+              maxParticipants: Number(pool.maxParticipants),
+              currentParticipants: Number(pool.currentParticipants),
+              prizePool: Number(pool.prizePool),
+              currentRound: Number(pool.currentRound),
+              poolStatus: Number(pool.poolStatus),
+              maxWinners: Number(pool.maxWinners),
+              currentActiveParticipants: Number(pool.currentActiveParticipants),
+            }));
+  
+            setSelectedPool(transformedPools);
+          }
+        }, [myPools]);
+
 
   const handlePlay=()=>{
     
@@ -68,7 +68,7 @@ const RenderMyPoolsTab = () => {
      
   }
 
-  return featuredPool.map((pools) => (
+  return selectedPool.map((pools) => (
     <div className="grid md:grid-cols-2">
       <motion.div
         className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
@@ -87,28 +87,28 @@ const RenderMyPoolsTab = () => {
             </p>
           </div>
           <div
-            className={`text-sm font-medium ${getStatusColor(pools.status)}`}
+            className={`text-sm font-medium ${getStatusColor(pools.poolStatus)}`}
           >
-            {pools.status === "filling" ? "Filling" : "Starting Soon"}
+            {pools.poolStatus ==1 ? "Filling" : "Starting Soon"}
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-gray-400">Stake</p>
-            <p className="font-medium text-white">{pools.stake}</p>
+            <p className="font-medium text-white">{pools.entryFee}</p>
           </div>
           <div>
             <p className="text-gray-400">Players</p>
-            <p className="font-medium text-white">{pools.players}</p>
+            <p className="font-medium text-white">{pools.currentParticipants}</p>
           </div>
-          <div>
+          {/* <div>
             <p className="text-gray-400">Time Left</p>
             <p className="font-medium text-white">{pools.timeLeft}</p>
-          </div>
+          </div> */}
           <div>
-            <p className="text-gray-400">Previous Winners</p>
-            <p className="font-medium text-white">{pools.previousWinners}</p>
+            <p className="text-gray-400">Pool Prize</p>
+            <p className="font-medium text-white">{pools.prizePool}</p>
           </div>
         </div>
 
