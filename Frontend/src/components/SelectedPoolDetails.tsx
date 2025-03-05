@@ -16,6 +16,8 @@ interface SelectedPoolDetailsProps {
 const SelectedPoolDetails = ({isModalOpen,selectedPool,closeModal, isStaking, handleStake}:SelectedPoolDetailsProps) => {
   const { address,} = useAccount();
   const {data: balanceData,} = useBalance({address: address,chainId: 1114,});
+
+  
   return (
     <AnimatePresence>
     {isModalOpen && selectedPool && (
