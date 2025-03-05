@@ -5,6 +5,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { MyContextProvider } from "./context/contextApi";
 
 const core = {
   id: 1114,
@@ -45,7 +46,9 @@ function App() {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
-            <RouterProvider router={router} />
+            <MyContextProvider>
+              <RouterProvider router={router} />
+            </MyContextProvider>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
