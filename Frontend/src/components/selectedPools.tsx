@@ -14,7 +14,7 @@ import {useAccount,useBalance,useWriteContract, useWaitForTransactionReceipt,use
 
 const RenderMyPoolsTab = () => {
   const [selectedPool, setSelectedPool] = useState<PoolInterface[]>([]);
-  const [showGameView, setShowGameView] = useState(false);
+  const { address } = useAccount();
   const navigate=useNavigate()
 
   const getStatusColor = (status: string) => {
@@ -31,21 +31,33 @@ const RenderMyPoolsTab = () => {
   };
 
   
-  const { data: myPools } = useReadContract({
-    address: CORE_CONTRACT_ADDRESS,
-    abi: ABI.abi,
-    functionName: "getUserPools",
-    args: [],
-  });
-
+  // const { data: myPools } = useReadContract({
+  //   address: CORE_CONTRACT_ADDRESS,
+  //   abi: ABI.abi,
+  //   functionName:"getUserPools",
+  //   args: [],
+  // });
+    const { 
+      data: userPools, 
+      isLoading, 
+      error 
+    } = useReadContract({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: ABI.abi,
+      functionName: 'getUserPools',
+      args: [],
+      query: {
+        enabled: !!address
+      }
+    })
   useEffect(() => {
-          if (myPools) {
+          if (userPools) {
             
-            if (!Array.isArray(myPools)) {
+            if (!Array.isArray(userPools)) {
               throw new Error("Invalid pool data format");
             }
   
-            const transformedPools: PoolInterface[] = myPools.map((pool, index) => ({
+            const transformedPools: PoolInterface[] = userPools.map((pool, index) => ({
               id: Number(pool.poolId),
               entryFee: BigInt(pool.entryFee),
               maxParticipants: Number(pool.maxParticipants),
@@ -56,10 +68,18 @@ const RenderMyPoolsTab = () => {
               maxWinners: Number(pool.maxWinners),
               currentActiveParticipants: Number(pool.currentActiveParticipants),
             }));
-  
+            console.log(`raw Poolssssssss ${userPools}`)
+            console.log(address)
+            console.log(CORE_CONTRACT_ADDRESS)
+            console.log(ABI.abi)
+           console.log(transformedPools)
+           console.log(error)
+           console.log(isLoading)
             setSelectedPool(transformedPools);
           }
-        }, [myPools]);
+        }, [userPools]);
+
+
 
 
   const handlePlay=()=>{
