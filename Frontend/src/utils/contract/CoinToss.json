@@ -12,6 +12,16 @@
     },
     {
       "type": "function",
+      "name": "concludeRound",
+      "inputs": [
+        { "name": "_poolId", "type": "uint256", "internalType": "uint256" },
+        { "name": "_round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "createPool",
       "inputs": [
         { "name": "_entryFee", "type": "uint256", "internalType": "uint256" },
@@ -459,7 +469,7 @@
           "internalType": "uint256"
         },
         {
-          "name": "",
+          "name": "winningSelection",
           "type": "uint8",
           "indexed": false,
           "internalType": "enum CoinToss.PlayerChoice"

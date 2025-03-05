@@ -23,7 +23,6 @@ const core = {
     public: {
       http: ["https://rpc.test2.btcs.network/"],
     },
-
   },
   blockExplorers: {
     default: { name: "Core Explorer", url: "https://scan.test2.btcs.network/" },
@@ -36,7 +35,6 @@ export const config = getDefaultConfig({
   projectId: "f6944e67672a59c2ac32f0ec4777dfd8",
   chains: [core],
 });
-
 
 function App() {
   const queryClient = new QueryClient();
