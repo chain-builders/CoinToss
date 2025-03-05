@@ -59,8 +59,8 @@ contract CoinToss is Ownable {
 
     uint public poolCount;
     mapping(uint => Pool) public pools;
-
-   
+    mapping(address => uint[]) public userPools;
+    
     
 
     modifier poolExists(uint _poolId) {
@@ -113,6 +113,8 @@ contract CoinToss is Ownable {
         newPlayer.choice = PlayerChoice.NONE;
         newPlayer.isEliminated = false;
         newPlayer.hasClaimed = false;
+
+        userPools[msg.sender].push(_poolId);
 
         if (pool.currentParticipants == pool.maxParticipants) {
             pool.status = PoolStatus.ACTIVE;
@@ -328,7 +330,44 @@ contract CoinToss is Ownable {
                 status: pool.status
             });
         }
-    return allPools;
-}
+        return allPools;
+    }
+
+    function getUserPools() external view returns (PoolInfo[] memory) {
+        uint[] storage poolIds = userPools[msg.sender];
+        PoolInfo[] memory userPoolInfo = new PoolInfo[](poolIds.length);
+
+        for (uint i = 0; i < poolIds.length; i++) {
+            uint poolId = poolIds[i];
+            Pool storage pool = pools[poolId];
+            
+            userPoolInfo[i] = PoolInfo({
+                poolId: poolId,
+                entryFee: pool.entryFee,
+                maxParticipants: pool.maxParticipants,
+                currentParticipants: pool.currentParticipants,
+                prizePool: pool.prizePool,
+                status: pool.status
+            });
+        }
+
+        return userPoolInfo;
+    }
+
+    function getUserPoolCount() external view returns (uint) {
+        return userPools[msg.sender].length;
+    }
+
+    function hasUserJoinedPool(uint _poolId) external view returns (bool) {
+        uint[] storage poolIds = userPools[msg.sender];
+        
+        for (uint i = 0; i < poolIds.length; i++) {
+            if (poolIds[i] == _poolId) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 
 }

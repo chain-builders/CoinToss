@@ -74,7 +74,9 @@ const PlayGame = () => {
   });
   const [gameOver, setGameOver] = useState(false);
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
-  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
+    null
+  );
   const [hasAttemptedSelection, setHasAttemptedSelection] = useState(false); // Track if user has attempted selection
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -86,55 +88,61 @@ const PlayGame = () => {
     error: writeError,
   } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError  } =useWaitForTransactionReceipt({hash,});
-
-
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
 
   // Handle player choice selection
   const handleMakeChoice = (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
     startCoinAnimation();
-    handleSubmit(selected); 
+    handleSubmit(selected);
   };
 
   // Handle submission to the smart contract
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected || selected === PlayerChoice.NONE) {
-      alert("Please select HEADS or TAILS");
+      showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
     }
 
+    const hardcodedPoolId = 0;
+
     try {
       setIsSubmitting(true);
-      setIsTimerActive(false)
+      setIsTimerActive(false);
 
-     writeContract({
+      const result = await writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
-        args: [BigInt(selectedPool?.id || 0), selected]
-     });
+        args: [BigInt(hardcodedPoolId), selected],
+      });
 
-    } catch (err) {
-      console.error("Error making selection:", err);
+      console.log("Transaction result:", result);
+    } catch (err: any) {
+      console.error("Transaction Error:", err);
+
+      const errorMessage = err.message || "Transaction failed";
+      showNotification(false, "Transaction Error", errorMessage);
+
       setIsSubmitting(false);
+      setIsTimerActive(true);
     }
   };
 
-
-  
   useEffect(() => {
-    console.log('Debug Transaction States:', {
+    console.log("Debug Transaction States:", {
       hash,
       isConfirming,
       isConfirmed,
       writeError,
-      receiptError
+      receiptError,
     });
   }, [hash, isConfirming, isConfirmed, writeError, receiptError]);
-
-
 
   // Handle transaction success or error
   useEffect(() => {
@@ -149,19 +157,15 @@ const PlayGame = () => {
       console.error("Error making selection:", writeError);
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
-      setIsTimerActive(true)
+      setIsTimerActive(true);
     }
 
-    if (receiptError) {    
+    if (receiptError) {
       showNotification(false, "Error!", "Failed to make selection.");
       setIsSubmitting(false);
-      setIsTimerActive(true)
+      setIsTimerActive(true);
     }
-  }, [isConfirmed, writeError,receiptError]);
-
-
-
-
+  }, [isConfirmed, writeError, receiptError]);
 
   // Format timer display
   const formatTime = (seconds: number) => {

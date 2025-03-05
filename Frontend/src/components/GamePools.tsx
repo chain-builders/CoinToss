@@ -4,10 +4,12 @@ import {Sparkles,Trophy} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+
 import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
+
 
 const PoolsInterface: React.FC = () => {
 
