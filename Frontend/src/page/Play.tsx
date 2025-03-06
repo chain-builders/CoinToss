@@ -58,12 +58,13 @@ const PlayGame = () => {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-
+  
       return () => clearInterval(interval);
     } else if (timer === 0) {
       setIsTimerActive(false);
-
+  
       if (!selectedChoice) {
+        // Player didn't make a choice in time
         showNotification(
           false,
           "Time's up!",
@@ -73,12 +74,14 @@ const PlayGame = () => {
           navigate("/explore");
         }, 3000);
       } else if (isWritePending || isConfirming) {
+        // Transaction is still being processed
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
       } else if (writeError || receiptError) {
+        // Transaction failed
         showNotification(
           false,
           "Transaction Failed",
@@ -87,16 +90,8 @@ const PlayGame = () => {
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
-      } else if (!selectedChoice || !isConfirmed) {
-        showNotification(
-          false,
-          "Time's up!",
-          "You didn't make a choice in time. You have been eliminated"
-        );
-        console.log(receiptError);
-        setTimeout(() => {
-          navigate("/explore");
-        }, 3000);
+      } else if (isConfirmed) {
+        setIsWaitingForOthers(true);
       }
     }
   }, [
@@ -115,6 +110,8 @@ const PlayGame = () => {
   const handleMakeChoice = async (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
+    console.log(selected)
+    console.log(selectedChoice)
     startCoinAnimation();
     await handleSubmit(selected);
   };
@@ -122,11 +119,12 @@ const PlayGame = () => {
   // __________________________________________Handle submission to the smart contract___________________________________________________
 
   const handleSubmit = async (selected: PlayerChoice) => {
+    console.log(selected)
     if (!selected || selected === PlayerChoice.NONE) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
     }
-
+    
     try {
       setIsSubmitting(true);
       writeContract({
@@ -254,7 +252,7 @@ const PlayGame = () => {
   }, [selectedChoice, isConfirmed]);
    
 
-  getPlayerStatus
+
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
       {/* Top Game Status Bar */}
