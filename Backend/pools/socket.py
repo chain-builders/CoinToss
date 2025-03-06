@@ -3,7 +3,7 @@ import os
 import json
 import logging
 import argparse
-from web3 import Web3, AsyncWeb3
+from web3 import WebSocketProvider, AsyncWeb3
 from dotenv import load_dotenv
 
 logging.basicConfig(
@@ -61,7 +61,8 @@ class SocketManager:
         try:
             self.validate_env_vars()
             # Create WebSocket connection
-            w3 = AsyncWeb3(AsyncWeb3.WebSocketProvider(self.alchemy_ws_url))
+            print(self.alchemy_ws_url)
+            w3 = AsyncWeb3(WebSocketProvider(self.alchemy_ws_url))
             
             # Verify connection
             is_connected = await w3.is_connected()
@@ -130,8 +131,8 @@ class SocketManager:
                     elif event_name == "RoundCompleted":
                         pool_id = event_args.get('poolId')
                         round = event_args.get('round')
-                        player_choice = event_args.get('playerChoice')
-                        logger.info(f"{pool_id} {round} {player_choice}")
+                        winning_selection = event_args.get('winningSelection')
+                        logger.info(f"{pool_id} {round} {winning_selection}")
                         # set timer for round completed call
                         await asyncio.sleep(280)
                         transaction_manager.process_round_results(pool_id, round)
