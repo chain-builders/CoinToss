@@ -1,9 +1,10 @@
 import { Coins } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useEffect, useRef } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useWatchContractEvent, useReadContract } from "wagmi";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+import ABI from "../utils/contract/CoinToss.json";
 
 const Header = () => {
   const { address, isConnected } = useAccount();
@@ -25,9 +26,23 @@ const Header = () => {
         navigate("/");
       }
     }
-  }, [isConnected, location.pathname, navigate]); 
+  }, [isConnected, location.pathname, navigate]);
 
 
+
+  const {
+    data: userPoints,
+    isLoading,
+    error,
+  } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName:"getPlayerPoints",
+    args: [address],
+    account: address,
+  });
+
+  console.log(userPoints)
   return (
     <div className="bg-gray-950 border-b border-gray-800 fixed inset-x-0 z-50 md:h-20 ">
       <header className="flex justify-between items-center w-full h-full px-5 py-4 text-white">
@@ -49,7 +64,7 @@ const Header = () => {
           {isConnected && (
             <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg flex items-center border border-gray-800">
               <Coins size={16} className="text-yellow-500 mr-2" />
-              <span className="font-medium text-yellow-500">0.00</span>
+              <span className="font-medium text-yellow-500">{userPoints}</span>
               <span className="text-gray-400 ml-1 text-sm">POINTS</span>
             </div>
           )}
