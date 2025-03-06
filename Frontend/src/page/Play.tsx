@@ -54,15 +54,16 @@ const PlayGame = () => {
   // _______________________________________Countdown logic and transaction processing after countdown______________________________________________________________
 
   useEffect(() => {
-    if (isWaitingForOthers) return; // Prevent running again if waiting
-  
+    // Handle timer countdown
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-    
+      
       return () => clearInterval(interval);
-    } else if (timer === 0) {
+    } 
+    // Handle timer reaching zero, but ONLY if not waiting for others
+    else if (timer === 0 && !isWaitingForOthers) {
       setIsTimerActive(false);
       console.log(`when timer stops ${selectedChoice}`);
       
