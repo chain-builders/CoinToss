@@ -12,5 +12,9 @@ library Events {
     event RoundLosers(uint poolId, uint round, address[] roundWinners);
     event PrizeClaimed(uint poolId, address player, uint prizeAmount);
     event PointsAwarded(address indexed player, uint16 points, uint8 reason);
+    event AllPlayersEliminated(uint indexed poolId, uint round);
+    event PreviousRoundWinnersSelected(uint indexed poolId, uint previousRound);
+    event AllPlayersEliminatedFirstRound(uint indexed poolId);
+    event EntryFeesRefunded(uint indexed poolId);
 }
 

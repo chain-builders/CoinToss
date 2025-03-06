@@ -280,7 +280,7 @@ contract CoinToss is Ownable {
         address[] memory winners = pools[_poolId].roundWinners[_round];
         for (uint i = 0; i < winners.length; i++) {
             if (winners[i] == _playerAddress) {
-                return true;
+                return true; 
             }
         }
         return false;
@@ -291,13 +291,13 @@ contract CoinToss is Ownable {
         return pools[_poolId].finalWinners;
     }
 
-    function isPlayerWinner(uint _poolId, address _player) public view poolExists(_poolId) returns (bool) {
+   function isPlayerWinner(uint _poolId, address _player) public view poolExists(_poolId) returns (bool) {
         Pool storage pool = pools[_poolId];
         require(pool.status == PoolStatus.CLOSED, "Pool must be completed to determine winners");
         
         for (uint i = 0; i < pool.finalWinners.length; i++) {
             if (pool.finalWinners[i] == _player) {
-                return true;
+                return true; 
             }
         }
         return false;
@@ -384,10 +384,10 @@ contract CoinToss is Ownable {
         
         for (uint i = 0; i < poolIds.length; i++) {
             if (poolIds[i] == _poolId) {
-                return true;
+                return true; 
             }
         }
-        
+    
         return false;
     }
 
