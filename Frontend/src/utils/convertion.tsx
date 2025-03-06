@@ -9,7 +9,7 @@ export const formatFigures = (value: string | bigint): string => {
     const numValue = parseFloat(formattedValue);
 
     const formatNumber = (num: number): string => {
-      // For very large numbers
+      // For very large number
       if (num >= 1_000_000) {
         const millionsValue = num / 1_000_000;
         return `${millionsValue.toFixed(2)}M`;
