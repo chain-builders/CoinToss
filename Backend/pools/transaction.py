@@ -21,6 +21,15 @@ class TransactionManager:
         self.contract_address = os.getenv('STAKING_CONTRACT_ADDRESS')
         self.contract_abi_path = os.getenv('CONTRACT_ABI_PATH')
         self.private_key = os.getenv('CONTRACT_OWNER_PRIVATE_KEY')
+        self.key1 = os.getenv('KEY1')
+        self.key2 = os.getenv('KEY2')
+        self.key3 = os.getenv('KEY3')
+        self.key4 = os.getenv('KEY4')
+        self.key5 = os.getenv('KEY5')
+        self.key6 = os.getenv('KEY6')
+        self.key7 = os.getenv('KEY7')
+        self.key8 = os.getenv('KEY8')
+        self.key9 = os.getenv('KEY9')
 
         self.http_w3 = None
         self.contract = None
@@ -76,15 +85,24 @@ class TransactionManager:
         print('Getting logs', event_name)
         if event_name == 'PoolActivated':
             print('Getting PoolActivated logs')
-            logs = self.contract.events.PoolActivated().get_logs(from_block=0)
+            latest_block = self.http_w3.eth.get_block('latest')
+            event_signature_hash = self.http_w3.keccak(text="PoolActivated(uint256)").hex()
+            logs = self.http_w3.eth.get_logs({
+                'fromBlock': 0,
+                'toBlock': latest_block['number'],
+                'address': self.contract_address,
+                'topics': [event_signature_hash]
+            })
+            #logs = self.contract.events.PoolActivated().get_logs(from_block=self.http_w3.eth.block_number)
             print('Logs:', logs)
             for log in logs:
                 print(log)
-                decoded_log = self.contract.events.PoolActivated().process_log(log)
-                event_args = decoded_log['args']
-                print(event_args)
+                event = self.contract.events.PoolActivated().process_log(log)
+                #decoded_log = self.contract.events.PoolActivated().process_log(log)
+                #event_args = decoded_log['args']
+                #print('event', event)
                 #await asyncio.sleep(280)
-                self.process_round_results(event_args.get('poolId'), 1)
+                #self.process_round_results(event_args.get('poolId'), 1)
         elif event_name == 'RoundConcluded':
             logs = self.contract.events.RoundConcluded().get_logs(from_block=self.http_w3.eth.block_number)
             for log in logs:
@@ -120,7 +138,7 @@ class TransactionManager:
         })
         signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
         tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"Transaction sent: {tx_hash.hex()}")
+        print(f"Create Pool sent: {tx_hash.hex()}")
         return {'tx_hash': tx_hash.hex(), 'status': 'pending'}
 
     def join_pool(self, pool_id):
@@ -135,12 +153,176 @@ class TransactionManager:
             'nonce': self.http_w3.eth.get_transaction_count(account.address),
             'gas': 200000,
             'gasPrice': self.http_w3.eth.gas_price,
-            'value': 5
+            'value': 50000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Join Pool sent: {tx_hash.hex()}")
+        return {'tx_hash': tx_hash.hex(), 'status': 'pending' }
+
+
+    def multiple_join_pool(self, pool_id):
+        if not self.http_w3:
+            self.initialize_web3_connections()
+        
+        account = self.http_w3.eth.account.from_key(self.private_key)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+
+        account5 = self.http_w3.eth.account.from_key(self.key5)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account5.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account5.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key5)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")
+    
+        account1 = self.http_w3.eth.account.from_key(self.key1)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account1.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account1.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key1)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+    
+        account2 = self.http_w3.eth.account.from_key(self.key2)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account2.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account2.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key2)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+
+        account3 = self.http_w3.eth.account.from_key(self.key3)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account3.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account3.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key3)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+    
+        account4 = self.http_w3.eth.account.from_key(self.key4)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account4.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account4.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key4)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+
+        account6 = self.http_w3.eth.account.from_key(self.key6)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account6.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account6.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 60000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key6)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")
+
+        account7 = self.http_w3.eth.account.from_key(self.key7)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account7.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account7.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key7)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+    
+        account8 = self.http_w3.eth.account.from_key(self.key8)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account8.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account8.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 6000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key8)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Multiple Join sent: {tx_hash.hex()}")
+
+        account9 = self.http_w3.eth.account.from_key(self.key9)
+        txn = self.contract.functions.joinPool(
+            pool_id
+        ).build_transaction({
+            'from': account9.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account9.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
+            'value': 60000000000000000000
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key9)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")
+
+    def make_round_selection(self, _pool_id, _selection):
+        if not self.http_w3:
+            self.initialize_web3_connections()
+
+        account = self.http_w3.eth.account.from_key(self.private_key)
+        txn = self.contract.functions.makeRoundSelection(
+            _pool_id,
+            _selection
+        ).build_transaction({
+            'from': account.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account.address),
+            'gas': 200000,
+            'gasPrice': self.http_w3.eth.gas_price,
         })
         signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
         tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         print(f"Transaction sent: {tx_hash.hex()}")
-        return {'tx_hash': tx_hash.hex(), 'status': 'pending' }
+        return {'tx_hash': tx_hash.hex(), 'status': 'pending'}
     
     def process_round_results(self, pool_id, round):
         if not self.http_w3:
