@@ -165,7 +165,7 @@ contract CoinToss is Ownable {
         uint tailsCount = pool.tailsCount[_round];
 
         PlayerChoice winningSelection;
-
+ 
         if(headsCount < tailsCount){
             winningSelection = PlayerChoice.HEADS;
         } 
