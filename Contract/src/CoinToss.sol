@@ -119,6 +119,7 @@ contract CoinToss is Ownable {
         if (pool.currentParticipants == pool.maxParticipants) {
             pool.status = PoolStatus.ACTIVE;
             pool.currentActiveParticipants = pool.currentParticipants;
+            emit Events.PoolActivated(_poolId);
         }
 
         emit Events.PlayerJoined(_poolId, newPlayer.playerAddress);
