@@ -54,17 +54,21 @@ const PlayGame = () => {
   // _______________________________________Countdown logic and transaction processing after countdown______________________________________________________________
 
   useEffect(() => {
+    // Handle timer countdown
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-  
+      
       return () => clearInterval(interval);
-    } else if (timer === 0) {
+    } 
+    // Handle timer reaching zero, but ONLY if not waiting for others
+    else if (timer === 0 && !isWaitingForOthers) {
       setIsTimerActive(false);
-  
+      console.log(`when timer stops ${selectedChoice}`);
+      
       if (!selectedChoice) {
-        // Player didn't make a choice in time
+        console.log(`when the user makes no choice ${selectedChoice}`)
         showNotification(
           false,
           "Time's up!",
@@ -74,14 +78,14 @@ const PlayGame = () => {
           navigate("/explore");
         }, 3000);
       } else if (isWritePending || isConfirming) {
-        // Transaction is still being processed
+        console.log(`when transaction is pending ${selectedChoice}`)
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
       } else if (writeError || receiptError) {
-        // Transaction failed
+        console.log(`when transaction error ${selectedChoice}`)
         showNotification(
           false,
           "Transaction Failed",
@@ -91,6 +95,7 @@ const PlayGame = () => {
           navigate("/explore");
         }, 3000);
       } else if (isConfirmed) {
+        console.log(`when transaction is confirmed ${selectedChoice}`)
         setIsWaitingForOthers(true);
       }
     }
@@ -103,8 +108,8 @@ const PlayGame = () => {
     isConfirming,
     writeError,
     receiptError,
+    isWaitingForOthers, 
   ]);
-
   // -----------------------------------------Handle player choice selection------------------------------------------------------
 
   const handleMakeChoice = async (selected: PlayerChoice) => {
