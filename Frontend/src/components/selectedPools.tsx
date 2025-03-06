@@ -97,6 +97,7 @@ const RenderMyPoolsTab = () => {
     ];
     return poolNames[poolId];
   };
+  console.log(userPools)
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {selectedPool.map((pools) => (
@@ -180,10 +181,12 @@ const RenderMyPoolsTab = () => {
                 : "hover:opacity-90 active:scale-95"
             }`}
             onClick={() => handlePlay(pools)}
-            disabled={pools.currentParticipants !== pools.maxParticipants}
+            disabled={pools.currentParticipants !== pools.maxParticipants || pools.prizePool=== 2}
+            
           >
-            <PlayCircle size={20} />
-            <span>Play Now</span>
+           {pools.poolStatus == 1 && <PlayCircle size={20} />} 
+            {pools.poolStatus == 1 ? <span>Play Now</span> :  <span>Game Starts Soon</span>}
+            
           </button>
         </motion.div>
       ))}

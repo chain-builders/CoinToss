@@ -42,6 +42,10 @@ const Header = () => {
     account: address,
   });
 
+  const displaypoint=()=>{
+    
+  }
+
   console.log(userPoints)
   return (
     <div className="bg-gray-950 border-b border-gray-800 fixed inset-x-0 z-50 md:h-20 ">
