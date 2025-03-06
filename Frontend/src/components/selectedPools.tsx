@@ -9,11 +9,7 @@ import ABI from "../utils/contract/CoinToss.json";
 import { PoolInterface } from "../utils/Interfaces";
 
 import { formatFigures } from "../utils/convertion";
-import {
-  useAccount,
-  useWatchContractEvent,
-  useReadContract,
-} from "wagmi";
+import { useAccount, useWatchContractEvent, useReadContract } from "wagmi";
 
 const RenderMyPoolsTab = () => {
   const [selectedPool, setSelectedPool] = useState<PoolInterface[]>([]);
@@ -33,26 +29,26 @@ const RenderMyPoolsTab = () => {
     }
   };
 
- const fetchPools=()=>{
-  if (userPools) {
-    if (!Array.isArray(userPools)) {
-      throw new Error("Invalid pool data format");
-    }
+  const fetchPools = () => {
+    if (userPools) {
+      if (!Array.isArray(userPools)) {
+        throw new Error("Invalid pool data format");
+      }
 
-    const transformedPools: PoolInterface[] = userPools.map(
-      (pool, index) => ({
-        id: Number(pool.poolId),
-        entryFee: BigInt(pool.entryFee),
-        maxParticipants: Number(pool.maxParticipants),
-        currentParticipants: Number(pool.currentParticipants),
-        prizePool: Number(pool.prizePool),
-        poolStatus: Number(pool.status),
-      })
-    );
-    
-    setSelectedPool(transformedPools);
-  }
- }
+      const transformedPools: PoolInterface[] = userPools.map(
+        (pool, index) => ({
+          id: Number(pool.poolId),
+          entryFee: BigInt(pool.entryFee),
+          maxParticipants: Number(pool.maxParticipants),
+          currentParticipants: Number(pool.currentParticipants),
+          prizePool: Number(pool.prizePool),
+          poolStatus: Number(pool.status),
+        })
+      );
+
+      setSelectedPool(transformedPools);
+    }
+  };
 
   const {
     data: userPools,
@@ -66,24 +62,21 @@ const RenderMyPoolsTab = () => {
     account: address,
   });
 
-  
- 
   useEffect(() => {
-     fetchPools()
+    fetchPools();
   }, [userPools]);
 
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: ABI.abi,
-    eventName: 'PlayerJoined',
+    eventName: "PlayerJoined",
     onLogs: (logs) => {
       fetchPools();
     },
   });
 
-
-  const handlePlay = (pools:PoolInterface) => {
-    navigate("/playgame", {state:{pools}});
+  const handlePlay = (pools: PoolInterface) => {
+    navigate("/playgame", { state: { pools } });
   };
   const getProgressPercentage = (pools) => {
     return Math.round(
@@ -106,9 +99,8 @@ const RenderMyPoolsTab = () => {
   };
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {
-         selectedPool.map((pools) =>(
-          <motion.div 
+      {selectedPool.map((pools) => (
+        <motion.div
           className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
           key={pools.id}
           initial={{ opacity: 0, y: 20 }}
@@ -130,13 +122,17 @@ const RenderMyPoolsTab = () => {
             </div>
             <div
               className={`text-sm font-medium ${
-                pools.currentParticipants === pools.maxParticipants ? "text-green-500" : "text-yellow-500"
+                pools.currentParticipants === pools.maxParticipants
+                  ? "text-green-500"
+                  : "text-yellow-500"
               }`}
             >
-              {pools.currentParticipants === pools.maxParticipants ? "Starting in 40 seconds" : "filling"}
+              {pools.currentParticipants === pools.maxParticipants
+                ? "Starting in 40 seconds"
+                : "filling"}
             </div>
           </div>
-  
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
             <div
@@ -144,7 +140,7 @@ const RenderMyPoolsTab = () => {
               style={{ width: `${getProgressPercentage(pools)}%` }}
             ></div>
           </div>
-  
+
           <div className="grid grid-cols-3 gap-4 text-sm mb-4">
             <div className="flex items-center space-x-2">
               <Coins size={16} className="text-gray-400" />
@@ -155,7 +151,7 @@ const RenderMyPoolsTab = () => {
                 </p>
               </div>
             </div>
-  
+
             <div className="flex items-center space-x-2">
               <Users size={16} className="text-gray-400" />
               <div>
@@ -165,7 +161,7 @@ const RenderMyPoolsTab = () => {
                 </p>
               </div>
             </div>
-  
+
             <div className="flex items-center space-x-2">
               <Trophy size={16} className="text-gray-400" />
               <div>
@@ -176,10 +172,12 @@ const RenderMyPoolsTab = () => {
               </div>
             </div>
           </div>
-  
+
           <button
             className={`mt-4 bg-gradient-to-r from-yellow-600 to-red-600 text-black font-bold py-3 px-4 rounded-lg w-full transition-all duration-300 ease-in-out flex items-center justify-center space-x-2  active:scale-95 ${
-              pools.currentParticipants !== pools.maxParticipants ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-95"
+              pools.currentParticipants !== pools.maxParticipants
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:opacity-90 active:scale-95"
             }`}
             onClick={() => handlePlay(pools)}
             disabled={pools.currentParticipants !== pools.maxParticipants}
@@ -188,11 +186,7 @@ const RenderMyPoolsTab = () => {
             <span>Play Now</span>
           </button>
         </motion.div>
-         ))
-      }
-      
-     
-    
+      ))}
     </div>
   );
 };

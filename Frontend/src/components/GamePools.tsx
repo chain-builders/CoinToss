@@ -8,7 +8,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { Trophy, Users, Coins } from "lucide-react";
-import { motion,} from "framer-motion";
+import { motion } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
 
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
@@ -17,10 +17,11 @@ import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
 import { useNavigate } from "react-router-dom";
+import { usePoolEvents } from "../hooks/usePoolEvents";
+import toast from "react-hot-toast";
 // import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
-  
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
@@ -31,6 +32,7 @@ const PoolsInterface: React.FC = () => {
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
+  const [participants, setParticipants] = useState<`0x${string}`[]>([]);
   const {
     writeContract,
     data: hash,
@@ -39,12 +41,87 @@ const PoolsInterface: React.FC = () => {
   } = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
-  const {data: balanceData,isLoading,isError,} = useBalance({ address: address, chainId: 1114 });
+  const {
+    data: balanceData,
+    isLoading,
+    isError,
+  } = useBalance({ address: address, chainId: 1114 });
 
   const { recentWinners, setMyPools } = useContext(MyContext);
   const navigate = useNavigate();
+
+  const contractAddress = CORE_CONTRACT_ADDRESS as `0x${string}`;
+
+  useWatchContractEvent({
+    address: contractAddress,
+    abi: ABI.abi,
+    eventName: "PlayerJoined",
+    onLogs: (logs) => {
+      logs.forEach((log) => {
+        console.log("Received logs:", logs);
+        if (!log.args) return;
+
+        console.log("The pool id is this", log[0].args.poolId);
+
+        const poolId =
+          typeof log.args.poolId === "bigint" ? log.args.poolId : undefined;
+        const player =
+          typeof log.args.player === "string"
+            ? (log.args.player as `0x${string}`)
+            : undefined;
+
+        if (!poolId || !player) {
+          console.error("Invalid event data structure:", log.args);
+          return;
+        }
+
+        console.log("Player joined pool:", { poolId: Number(poolId), player });
+
+        // Update UI
+        setParticipants((prev) => [...prev, player]);
+
+        // Show notification
+        toast.success(
+          `New player ${player.substring(0, 6)}...${player.substring(
+            38
+          )} joined pool #${Number(poolId)}`
+        );
+
+        // Show pulse animation on the pool card
+        setShowPulse((prev) => ({
+          ...prev,
+          [Number(poolId)]: true,
+        }));
+
+        // Remove pulse after 2 seconds
+        setTimeout(() => {
+          setShowPulse((prev) => ({
+            ...prev,
+            [Number(poolId)]: false,
+          }));
+        }, 2000);
+
+        // If this is the selected pool, update its current participants count
+        if (selectedPool && Number(poolId) === selectedPool.id) {
+          setNewPools((prevPools) =>
+            prevPools.map((pool) =>
+              pool.id === Number(poolId)
+                ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
+                : pool
+            )
+          );
+        }
+      });
+    },
+  });
+
   // all pools
-  const { data: allPools } = useReadContract({address: CORE_CONTRACT_ADDRESS,abi: ABI.abi,functionName: "getAllPools",args: [],});
+  const { data: allPools } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getAllPools",
+    args: [],
+  });
 
   useEffect(() => {
     if (allPools) {
@@ -65,15 +142,20 @@ const PoolsInterface: React.FC = () => {
     }
   }, [allPools]);
 
-
-
- 
-
   // join pool function
-  const {isLoading: isConfirming,isSuccess: isConfirmed,error: txError} = useWaitForTransactionReceipt({ hash });
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    error: txError,
+  } = useWaitForTransactionReceipt({ hash });
 
   // Read contract to check user's joined pools
-  const { data: userJoinedPoolIds } = useReadContract({address: CORE_CONTRACT_ADDRESS,abi: ABI.abi,functionName: "getUserPools",args: [],account: address,
+  const { data: userJoinedPoolIds } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS,
+    abi: ABI.abi,
+    functionName: "getUserPools",
+    args: [],
+    account: address,
   });
 
   useEffect(() => {
@@ -101,10 +183,11 @@ const PoolsInterface: React.FC = () => {
   }, [isConfirmed, txError, userJoinedPoolIds]);
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
+    toast.success(`Manually triggered join notification for pool #${poolId}`);
     setIsStaking(true);
     try {
       writeContract({
-        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        address: contractAddress,
         abi: ABI.abi,
         functionName: "joinPool",
         args: [BigInt(poolId)],
@@ -113,7 +196,8 @@ const PoolsInterface: React.FC = () => {
       });
       setJoining(true);
     } catch (err) {
-      setIsStaking(true);
+      console.error("Error joining pool:", err);
+      setIsStaking(false);
       setJoining(false);
     }
   };
@@ -121,7 +205,9 @@ const PoolsInterface: React.FC = () => {
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
-    setStakeAmount(parseInt(pool.stake.replace("$", ""), 10));
+    // Make sure stake amount is properly set or defaulted
+    const stakeText = pool.stake?.replace("$", "") || "0";
+    setStakeAmount(parseInt(stakeText, 10) || 0);
   };
 
   const closeModal = () => {
@@ -135,13 +221,12 @@ const PoolsInterface: React.FC = () => {
     if (!selectedPool) return;
 
     try {
-      const tx = await handleJoinPool(selectedPool.id, selectedPool.entryFee);
-      await tx.wait();
+      await handleJoinPool(selectedPool.id, selectedPool.entryFee);
+      // No need to await tx.wait() here as we're using useWaitForTransactionReceipt hook
       setUserBalance((prevBalance) => prevBalance - stakeAmount);
     } catch (error) {
       console.error("Transaction failed:", error);
       showPoolNotification("Transaction failed. Please try again.");
-    } finally {
     }
   };
 
@@ -151,7 +236,6 @@ const PoolsInterface: React.FC = () => {
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 4000);
   };
-
 
   const getStatusColor = (status: number) => {
     switch (status) {
@@ -176,7 +260,7 @@ const PoolsInterface: React.FC = () => {
       "Whale's Haven",
       "Staking Sanctuary",
     ];
-    return poolNames[poolId];
+    return poolNames[poolId % poolNames.length];
   };
 
   const getProgressPercentage = (pools) => {
@@ -203,12 +287,6 @@ const PoolsInterface: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Featured "hot" pool - creates FOMO */}
-
-      {/* <AboutToFull
-        featuredPool={featuredPool}
-      /> */}
 
       <div className="mb-6 bg-gray-800 p-3 rounded-lg overflow-hidden">
         <div className="text-sm font-medium mb-2 flex items-center">
@@ -280,7 +358,7 @@ const PoolsInterface: React.FC = () => {
                   <h3 className="font-bold flex items-center">
                     {setPoolNames(pool.id)}
                     {pool.poolStatus === 1 && (
-                      <Sparkles size={16} className="ml-2 text-yellow-400" />
+                      <span className="ml-2 text-yellow-400">✨</span>
                     )}
                   </h3>
                   <span
