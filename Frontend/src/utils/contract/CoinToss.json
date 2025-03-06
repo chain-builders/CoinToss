@@ -3,6 +3,27 @@
     { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
     {
       "type": "function",
+      "name": "POINTS_FOR_FINAL_WIN",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint16", "internalType": "uint16" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "POINTS_FOR_JOINING",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint16", "internalType": "uint16" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "POINTS_FOR_ROUND_WIN",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint16", "internalType": "uint16" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "claimPrize",
       "inputs": [
         { "name": "_poolId", "type": "uint256", "internalType": "uint256" }
@@ -98,6 +119,27 @@
       ],
       "outputs": [
         { "name": "", "type": "address[]", "internalType": "address[]" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getPlayerPoints",
+      "inputs": [
+        { "name": "_player", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getPlayerPointsHistory",
+      "inputs": [
+        { "name": "_player", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "totalPoints", "type": "uint64", "internalType": "uint64" },
+        { "name": "finalsWon", "type": "uint8", "internalType": "uint8" }
       ],
       "stateMutability": "view"
     },
@@ -277,6 +319,13 @@
     },
     {
       "type": "function",
+      "name": "playerPoints",
+      "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "poolCount",
       "inputs": [],
       "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
@@ -379,6 +428,31 @@
           "type": "address",
           "indexed": false,
           "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PointsAwarded",
+      "inputs": [
+        {
+          "name": "player",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "points",
+          "type": "uint16",
+          "indexed": false,
+          "internalType": "uint16"
+        },
+        {
+          "name": "reason",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "uint8"
         }
       ],
       "anonymous": false
