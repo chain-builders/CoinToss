@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from .listener import start_event_listener
-from asgiref.sync import async_to_sync
+#from asgiref.sync import async_to_sync
 
 
 class PoolsConfig(AppConfig):
@@ -8,4 +8,4 @@ class PoolsConfig(AppConfig):
     name = 'pools'
 
     def ready(self):
-        async_to_sync(start_event_listener)()
+        start_event_listener()
