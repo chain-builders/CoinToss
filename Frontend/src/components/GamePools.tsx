@@ -4,12 +4,12 @@ import {
   useBalance,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useWatchContractEvent,
   useReadContract,
 } from "wagmi";
 import { Trophy, Users, Coins } from "lucide-react";
 import { motion,} from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
-import { ToastContainer, toast } from 'react-toastify';
 
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { formatFigures } from "../utils/convertion";
@@ -20,14 +20,13 @@ import { useNavigate } from "react-router-dom";
 // import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
-  // const [pools, setPools] = useState<PoolInterface[]>([]);
+  
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
-  // const [featuredPool, setFeaturedPool] = useState<PoolInterface | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
@@ -65,6 +64,10 @@ const PoolsInterface: React.FC = () => {
       setNewPools(transformedPools);
     }
   }, [allPools]);
+
+
+
+ 
 
   // join pool function
   const {isLoading: isConfirming,isSuccess: isConfirmed,error: txError} = useWaitForTransactionReceipt({ hash });
@@ -175,7 +178,7 @@ const PoolsInterface: React.FC = () => {
     ];
     return poolNames[poolId];
   };
-  
+
   const getProgressPercentage = (pools) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
@@ -184,7 +187,6 @@ const PoolsInterface: React.FC = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      {/* Balance and stats bar */}
       <div className="flex justify-between items-center mb-6 bg-gray-800 p-3 rounded-lg">
         <div className="font-medium">
           Your Balance:{" "}
@@ -363,7 +365,6 @@ const PoolsInterface: React.FC = () => {
       >
         <p>{notificationMessage}</p>
       </motion.div>
-      <ToastContainer/>
     </div>
   );
 };
