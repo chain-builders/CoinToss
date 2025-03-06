@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 import { useState, useEffect } from "react";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
-import { PoolInterface } from "../utils/Interfaces";
 import ABI from "../utils/contract/CoinToss.json";
+import { PoolInterface } from "../utils/Interfaces";
+
 import { formatFigures } from "../utils/convertion";
 import {
   useAccount,
