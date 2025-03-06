@@ -56,10 +56,22 @@ contract CoinToss is Ownable {
         PoolStatus status;
     }
 
+    uint16 public constant POINTS_FOR_JOINING = 10;
+    uint16 public constant POINTS_FOR_ROUND_WIN = 25;
+    uint16 public constant POINTS_FOR_FINAL_WIN = 100;
+
 
     uint public poolCount;
     mapping(uint => Pool) public pools;
     mapping(address => uint[]) public userPools;
+
+    mapping(address => uint64) public playerPoints; // player points tracks
+    // Pack multiple flags into a single storage slot using bitmaps
+    // poolId => (player => bitmap of awarded points)
+    mapping(uint256 => mapping(address => uint8)) private pointsAwarded;
+
+    mapping(uint256 => mapping(uint256 => address[])) private roundWinners; // poolId => (round => players who won)
+    
     
     
 
@@ -116,13 +128,15 @@ contract CoinToss is Ownable {
 
         userPools[msg.sender].push(_poolId);
 
+        _awardJoiningPoints(_poolId, msg.sender);
+
         if (pool.currentParticipants == pool.maxParticipants) {
             pool.status = PoolStatus.ACTIVE;
             pool.currentActiveParticipants = pool.currentParticipants;
             emit Events.PoolActivated(_poolId);
         }
 
-        emit Events.PlayerJoined(_poolId, newPlayer.playerAddress);
+        emit Events.PlayerJoined(_poolId, msg.sender);
     }
 
     function makeSelection(uint _poolId, PlayerChoice _choice) external poolExists(_poolId){
@@ -142,19 +156,20 @@ contract CoinToss is Ownable {
         if (_choice == PlayerChoice.TAILS){
             pool.tailsCount[pool.currentRound]++;
         }
-        bool allPlayersSelected = true;
+        
+        //Break early if any player hasn't made a selection yet
         for (uint i = 0; i < pool.playersInPool.length; i++) {
             address playerAddress = pool.playersInPool[i];
             if (!pool.players[playerAddress].isEliminated && 
                 !pool.roundParticipation[pool.currentRound][playerAddress]) {
-                allPlayersSelected = false;
-                break;
+                // Found at least one player who hasn't made a selection yet
+                // No need to check the rest of the players
+                return;
             }
         }
-
-        if (allPlayersSelected) {
-            roundResult(_poolId, pool.currentRound); 
-        }
+        
+        // If we reach here, all active players have made their selections
+        roundResult(_poolId, pool.currentRound);
     }
 
     function roundResult(uint _poolId, uint _round) internal poolExists(_poolId){
@@ -166,7 +181,7 @@ contract CoinToss is Ownable {
         uint tailsCount = pool.tailsCount[_round];
 
         PlayerChoice winningSelection;
-
+ 
         if(headsCount < tailsCount){
             winningSelection = PlayerChoice.HEADS;
         } 
@@ -196,6 +211,7 @@ contract CoinToss is Ownable {
                 } else {
                     remainingPlayers++;
                     pool.roundWinners[_round].push(playerAddressInPool);
+                    _awardRoundWinPoints(_poolId, _round, playerAddressInPool);
                 }
             }
         }
@@ -212,6 +228,7 @@ contract CoinToss is Ownable {
                 address playerAddress = pool.playersInPool[i];
                 if (!pool.players[playerAddress].isEliminated) {
                 pool.finalWinners.push(playerAddress);
+                _awardFinalWinPoints(_poolId, playerAddress);
             }
     }
             emit Events.PoolCompleted(_poolId, pool.prizePool);
@@ -264,7 +281,7 @@ contract CoinToss is Ownable {
         address[] memory winners = pools[_poolId].roundWinners[_round];
         for (uint i = 0; i < winners.length; i++) {
             if (winners[i] == _playerAddress) {
-                return true;
+                return true; 
             }
         }
         return false;
@@ -275,13 +292,13 @@ contract CoinToss is Ownable {
         return pools[_poolId].finalWinners;
     }
 
-    function isPlayerWinner(uint _poolId, address _player) public view poolExists(_poolId) returns (bool) {
+   function isPlayerWinner(uint _poolId, address _player) public view poolExists(_poolId) returns (bool) {
         Pool storage pool = pools[_poolId];
         require(pool.status == PoolStatus.CLOSED, "Pool must be completed to determine winners");
         
         for (uint i = 0; i < pool.finalWinners.length; i++) {
             if (pool.finalWinners[i] == _player) {
-                return true;
+                return true; 
             }
         }
         return false;
@@ -368,11 +385,56 @@ contract CoinToss is Ownable {
         
         for (uint i = 0; i < poolIds.length; i++) {
             if (poolIds[i] == _poolId) {
-                return true;
+                return true; 
             }
         }
-        
+    
         return false;
     }
 
+    function _awardJoiningPoints(uint _poolId, address _player) internal {
+        // Check if bit 0 is set
+        if (pointsAwarded[_poolId][_player] & 0x01 == 0) {
+            playerPoints[_player] += POINTS_FOR_JOINING;
+            // Set bit 0 to mark as awarded
+            pointsAwarded[_poolId][_player] |= 0x01;
+            emit Events.PointsAwarded(_player, POINTS_FOR_JOINING, 1); // 1 = joined
+        }
+    
+    }
+
+    function _awardRoundWinPoints(uint _poolId, uint256 _round, address _player) internal {
+        // Add to winners array (which is already being maintained)
+        // No need for duplicate storage
+        playerPoints[_player] += POINTS_FOR_ROUND_WIN;
+        emit Events.PointsAwarded(_player, POINTS_FOR_ROUND_WIN, 2); // 2 = round win
+    }
+
+    function _awardFinalWinPoints(uint256 _poolId, address _player) internal {
+        // Check if bit 1 is set
+        if (pointsAwarded[_poolId][_player] & 0x02 == 0) {
+            playerPoints[_player] += POINTS_FOR_FINAL_WIN;
+            // Set bit 1 to mark as awarded
+            pointsAwarded[_poolId][_player] |= 0x02;
+            emit Events.PointsAwarded(_player, POINTS_FOR_FINAL_WIN, 3); // 3 = final win
+        }
+    }
+
+    function getPlayerPoints(address _player) external view returns (uint64) {
+        return playerPoints[_player];
+    }
+
+    function getPlayerPointsHistory(address _player) external view returns (uint64 totalPoints, uint8 finalsWon) {
+        totalPoints = playerPoints[_player];
+        
+        // Count final wins
+        finalsWon = 0;
+        for (uint i = 0; i < poolCount; i++) {
+            if (pointsAwarded[i][_player] & 0x02 != 0) {
+                finalsWon++;
+            }
+        }
+        
+        return (totalPoints, finalsWon);
+    }
 }

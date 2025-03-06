@@ -4,29 +4,29 @@ import {
   useBalance,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useWatchContractEvent,
   useReadContract,
 } from "wagmi";
 import { Trophy, Users, Coins } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion,} from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
-import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
+import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
 import { useNavigate } from "react-router-dom";
-import AboutToFull from "./AboutToFull";
+// import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
-  const [pools, setPools] = useState<PoolInterface[]>([]);
+  
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolInterface | null>(null);
   const [userBalance, setUserBalance] = useState<number>(1000);
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
-  const [featuredPool, setFeaturedPool] = useState<PoolInterface | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
   const [joining, setJoining] = useState(false);
@@ -39,30 +39,20 @@ const PoolsInterface: React.FC = () => {
   } = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
-  const {
-    data: balanceData,
-    isLoading,
-    isError,
-  } = useBalance({ address: address, chainId: 1114 });
+  const {data: balanceData,isLoading,isError,} = useBalance({ address: address, chainId: 1114 });
 
   const { recentWinners, setMyPools } = useContext(MyContext);
   const navigate = useNavigate();
   // all pools
-  const { data: allPools } = useReadContract({
-    address: CORE_CONTRACT_ADDRESS,
-    abi: ABI.abi,
-    functionName: "getAllPools",
-    args: [],
-  });
+  const { data: allPools } = useReadContract({address: CORE_CONTRACT_ADDRESS,abi: ABI.abi,functionName: "getAllPools",args: [],});
 
   useEffect(() => {
     if (allPools) {
-      // Check if allPools is a valid array
       if (!Array.isArray(allPools)) {
         throw new Error("Invalid pool data format");
       }
 
-      const transformedPools: PoolInterface[] = allPools.map((pool, index) => ({
+      const transformedPools: PoolInterface[] = allPools.map((pool) => ({
         id: Number(pool.poolId),
         entryFee: BigInt(pool.entryFee),
         maxParticipants: Number(pool.maxParticipants),
@@ -75,20 +65,15 @@ const PoolsInterface: React.FC = () => {
     }
   }, [allPools]);
 
+
+
+ 
+
   // join pool function
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: txError,
-  } = useWaitForTransactionReceipt({ hash });
+  const {isLoading: isConfirming,isSuccess: isConfirmed,error: txError} = useWaitForTransactionReceipt({ hash });
 
   // Read contract to check user's joined pools
-  const { data: userJoinedPoolIds } = useReadContract({
-    address: CORE_CONTRACT_ADDRESS,
-    abi: ABI.abi,
-    functionName: "getUserPools",
-    args: [],
-    account: address,
+  const { data: userJoinedPoolIds } = useReadContract({address: CORE_CONTRACT_ADDRESS,abi: ABI.abi,functionName: "getUserPools",args: [],account: address,
   });
 
   useEffect(() => {
@@ -131,7 +116,7 @@ const PoolsInterface: React.FC = () => {
       setIsStaking(true);
       setJoining(false);
     }
-  }; // Function to handle pool selection
+  };
 
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
@@ -167,7 +152,7 @@ const PoolsInterface: React.FC = () => {
     setTimeout(() => setShowNotification(false), 4000);
   };
 
-  // Function to determine status color
+
   const getStatusColor = (status: number) => {
     switch (status) {
       case 1:
@@ -193,6 +178,7 @@ const PoolsInterface: React.FC = () => {
     ];
     return poolNames[poolId];
   };
+
   const getProgressPercentage = (pools) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
@@ -201,7 +187,6 @@ const PoolsInterface: React.FC = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      {/* Balance and stats bar */}
       <div className="flex justify-between items-center mb-6 bg-gray-800 p-3 rounded-lg">
         <div className="font-medium">
           Your Balance:{" "}

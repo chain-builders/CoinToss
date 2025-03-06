@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
-  useWatchContractEvent,
-} from "wagmi";
+import {formatTime} from "../utils/utilFunction"
+import {useWriteContract,useWaitForTransactionReceipt,useWatchContractEvent,} from "wagmi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
@@ -14,8 +10,8 @@ enum PlayerChoice {
   HEADS = 1,
   TAILS = 2,
 }
-
 const PlayGame = () => {
+  
   const navigate = useNavigate();
   const location = useLocation();
   const pool = location.state.pools;
@@ -34,7 +30,6 @@ const PlayGame = () => {
     subMessage: "",
   });
 
-  const { address } = useAccount();
 
   const {
     writeContract,
@@ -51,13 +46,57 @@ const PlayGame = () => {
 
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
 
+ // _______________________________________Countdown logic and transaction processing after countdown______________________________________________________________
+
+ useEffect(() => {
+  if (isTimerActive && timer > 0) {
+    const interval = setInterval(() => {
+      setTimer((prevTimer) => prevTimer - 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  } else if (timer === 0) {
+    setIsTimerActive(false);
+    
+   
+    if (!selectedChoice) {
+      showNotification(false, "Time's up!", "You didn't make a choice in time. You have been eliminated");
+      setTimeout(() => {
+        navigate("/explore");
+      }, 3000);
+    } 
+   
+    else if (isWritePending || isConfirming) {
+      showNotification(true, "Processing...", "Your choice has been submitted and is being processed");
+    }
+ 
+    else if (writeError || receiptError) {
+      showNotification(false, "Transaction Failed", "Your transaction failed to process. You have been eliminated");
+      setTimeout(() => {
+        navigate("/explore");
+      }, 3000);
+    }
+    
+
+    else if (!selectedChoice || !isConfirmed) {
+      showNotification(false, "Time's up!", "You didn't make a choice in time. You have been eliminated");
+      console.log(receiptError)
+      setTimeout(() => {
+        navigate("/explore");
+      }, 3000);
+    }
+  }
+}, [isTimerActive, timer, selectedChoice, isConfirmed, isWritePending, isConfirming, writeError, receiptError]);
+
+
+
   // -----------------------------------------Handle player choice selection------------------------------------------------------
 
-  const handleMakeChoice = (selected: PlayerChoice) => {
+  const handleMakeChoice = async (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
-    startCoinAnimation(); 
-    handleSubmit(selected);
+    startCoinAnimation();
+    await handleSubmit(selected); 
   };
 
   // __________________________________________Handle submission to the smart contract___________________________________________________
@@ -135,62 +174,51 @@ const PlayGame = () => {
    
   };
 
-  // Countdown logic
-  useEffect(() => {
-    if (isTimerActive && timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
 
-      return () => clearInterval(interval);
-    } else if (timer === 0) {
-      setIsTimerActive(false);
-      showNotification(false, "Time's up!", "You didn't make a choice in time. You have been eliminated");
-      setTimeout(() => {
-        navigate("/explore");
-      }, 3000);
-    }
-    
-  }, [isTimerActive, timer]);
-
-   // Format timer display
-   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
 
   // Listen for RoundCompleted event from the smart contract
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
-    listener: (logs) => {
-      
-      const [log] = logs;
-      
-      
-      const { poolId, roundNumber, winningSelection } = log.args;
-
-      
-      if (poolId === BigInt(pool.id)) {
-        stopCoinAnimation();
-        
-        
-        const readableSelection = winningSelection === 0 ? 'HEADS' : 'TAILS';
-        
-        showNotification(
-          true,
-          `Round ${roundNumber} Completed!`,
-          `Winning selection: ${readableSelection}`
-        );
-        
-        setRound(Number(roundNumber) + 1); 
-        setTimer(20); 
-        setIsTimerActive(true); 
+    onLogs: (logs) => {
+      for (const log of logs) {
+        try {
+          const poolId = log.topics[1]; 
+          console.log("Log received:", log);
+          
+          const [eventPoolId, roundNumber, winningSelection] = [
+            BigInt(log.topics[1]),  
+            BigInt("0"),  
+            BigInt("0") 
+          ];
+          
+          if (eventPoolId === BigInt(pool.id)) {
+            stopCoinAnimation();
+            
+            const userSurvived = selectedChoice === Number(winningSelection);
+            showNotification(
+              userSurvived,
+              `Round ${roundNumber} Completed!`,
+              userSurvived ? "You advanced to the next round!" : "You were eliminated!"
+            );
+            
+            setTimeout(() => {
+              if (userSurvived) {
+                setRound(Number(roundNumber) + 1); 
+                setTimer(20); 
+                setIsTimerActive(true); 
+              } else {
+                navigate("/explore");
+              }
+            }, 3000);
+          }
+        } catch (error) {
+          console.error("Error processing event log:", error);
+        }
       }
     },
-  })
+  });
 
   
   useEffect(() => {

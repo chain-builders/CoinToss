@@ -3,8 +3,7 @@ import { useState, useEffect } from "react";
 import RenderGameView from "../components/MyPools";
 import PoolsInterface from "../components/GamePools";
 import RenderMyPoolsTab from "../components/selectedPools";
-import { useReadContract } from "wagmi";
-import contractABI from "./../utils/contract/CoinToss.json";
+
 
 const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");
