@@ -54,21 +54,28 @@ const PlayGame = () => {
   // _______________________________________Countdown logic and transaction processing after countdown______________________________________________________________
 
   useEffect(() => {
-    // Handle timer countdown
+
+    console.log(`Effect running: timer=${timer}, waiting=${isWaitingForOthers}, 
+      selected=${selectedChoice}, isConfirmed=${isConfirmed}, 
+      isPending=${isWritePending || isConfirming}`);
+  
+    
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-      
+  
       return () => clearInterval(interval);
     } 
-    // Handle timer reaching zero, but ONLY if not waiting for others
-    else if (timer === 0 && !isWaitingForOthers) {
+    else if (timer === 0) {
+     
       setIsTimerActive(false);
-      console.log(`when timer stops ${selectedChoice}`);
+      console.log(`Timer reached zero: waiting=${isWaitingForOthers}, 
+        selected=${selectedChoice}, isConfirmed=${isConfirmed}`);
+  
       
       if (!selectedChoice) {
-        console.log(`when the user makes no choice ${selectedChoice}`)
+        console.log("Showing time's up notification - no choice made");
         showNotification(
           false,
           "Time's up!",
@@ -77,15 +84,17 @@ const PlayGame = () => {
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
-      } else if (isWritePending || isConfirming) {
-        console.log(`when transaction is pending ${selectedChoice}`)
+      } 
+      else if (isWritePending || isConfirming) {
+        console.log("Showing processing notification - transaction pending");
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
-      } else if (writeError || receiptError) {
-        console.log(`when transaction error ${selectedChoice}`)
+      } 
+      
+      else if (writeError || receiptError) {
         showNotification(
           false,
           "Transaction Failed",
@@ -94,8 +103,10 @@ const PlayGame = () => {
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
-      } else if (isConfirmed) {
-        console.log(`when transaction is confirmed ${selectedChoice}`)
+      }
+     
+      else if (isConfirmed) {
+        console.log("Setting isWaitingForOthers to true");
         setIsWaitingForOthers(true);
       }
     }
@@ -108,8 +119,13 @@ const PlayGame = () => {
     isConfirming,
     writeError,
     receiptError,
-    isWaitingForOthers, 
   ]);
+  
+  useEffect(() => {
+    if (selectedChoice && isConfirmed) {
+      setIsWaitingForOthers(true);
+    }
+  }, [selectedChoice, isConfirmed]);
   // -----------------------------------------Handle player choice selection------------------------------------------------------
 
   const handleMakeChoice = async (selected: PlayerChoice) => {
@@ -250,6 +266,7 @@ const PlayGame = () => {
   }, []);
 
   //__________________Waiting For Other Players ________________________________
+  
   useEffect(() => {
     if (selectedChoice && isConfirmed) {
       setIsWaitingForOthers(true);
