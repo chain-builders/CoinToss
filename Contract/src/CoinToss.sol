@@ -100,7 +100,7 @@ contract CoinToss is Ownable {
     function joinPool(uint _poolId) external payable poolExists(_poolId){
         Pool storage pool = pools[_poolId];
         require(pool.status == PoolStatus.OPENED, "The Pool is not yet opened for participation");
-        require(msg.value == pool.entryFee, "Entry fee is not met");
+        require(msg.value >= pool.entryFee, "Entry fee is not met");
         require(pool.currentParticipants < pool.maxParticipants, "The pool is already full");
         require(pool.players[msg.sender].playerAddress == address(0), "Player has already joined this pool");
 

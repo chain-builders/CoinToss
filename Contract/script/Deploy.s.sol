@@ -25,12 +25,12 @@ contract CoinTossScript is Script {
         console.log("Created Pool 0 with entry fee:", entryFee1, "and max participants:", maxParticipants1);
         
         uint256 entryFee2 = 0.05 ether;
-        uint256 maxParticipants2 = 10;
+        uint256 maxParticipants2 = 5;
         coinToss.createPool(entryFee2, maxParticipants2);
         console.log("Created Pool 1 with entry fee:", entryFee2, "and max participants:", maxParticipants2);
         
         uint256 entryFee3 = 0.1 ether;
-        uint256 maxParticipants3 = 20;
+        uint256 maxParticipants3 = 5;
         coinToss.createPool(entryFee3, maxParticipants3);
         console.log("Created Pool 2 with entry fee:", entryFee3, "and max participants:", maxParticipants3);
 
