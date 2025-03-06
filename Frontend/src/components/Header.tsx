@@ -29,7 +29,7 @@ const Header = () => {
 
 
   return (
-    <div className="bg-gray-950 border-b border-gray-800 ">
+    <div className="bg-gray-950 border-b border-gray-800 fixed inset-x-0 z-50 md:h-20 ">
       <header className="flex justify-between items-center w-full h-full px-5 py-4 text-white">
         <div className="flex items-center space-x-3">
           <div className="bg-gradient-to-br from-yellow-600 to-red-600 w-10 h-10 rounded-full flex items-center justify-center border border-yellow-500 shadow-glow-gold">
