@@ -190,7 +190,15 @@ const PlayGame = () => {
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
+      console.log("RoundCompleted event detected, logs:", logs);
+      // If this line never appears, the event isn't being detected at all
+
+      if (logs.length === 0) {
+        console.log("Empty logs array received");
+        return;
+      }
       for (const log of logs) {
+        console.log("Processing log:", log);
         console.log("Received logs--------:", logs);
         try {
           console.log("Log received:", log);
@@ -200,6 +208,8 @@ const PlayGame = () => {
             console.error("No args in log:", log);
             continue;
           }
+
+          console.log("Event arguments:", log.args);
 
           // Extract the data from log.args using the proper field names from your event
           const eventPoolId =
@@ -212,6 +222,12 @@ const PlayGame = () => {
             typeof log.args.winningChoice === "bigint"
               ? log.args.winningChoice
               : undefined;
+
+          console.log("Extracted data:", {
+            eventPoolId,
+            roundNumber,
+            winningSelection,
+          });
 
           // Verify we have all necessary data
           if (
