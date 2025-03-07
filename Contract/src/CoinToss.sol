@@ -157,18 +157,17 @@ contract CoinToss is Ownable {
             pool.tailsCount[pool.currentRound]++;
         }
         
-        //Break early if any player hasn't made a selection yet
+        
         for (uint i = 0; i < pool.playersInPool.length; i++) {
             address playerAddress = pool.playersInPool[i];
             if (!pool.players[playerAddress].isEliminated && 
                 !pool.roundParticipation[pool.currentRound][playerAddress]) {
-                // Found at least one player who hasn't made a selection yet
-                // No need to check the rest of the players
+              
                 return;
             }
         }
         
-        // If we reach here, all active players have made their selections
+     
         roundResult(_poolId, pool.currentRound);
     }
 

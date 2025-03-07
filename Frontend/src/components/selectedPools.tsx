@@ -62,6 +62,7 @@ const RenderMyPoolsTab = () => {
   const handlePlay = (pools: PoolInterface) => {
     navigate("/playgame", { state: { pools } });
   };
+  
   const getProgressPercentage = (pools) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
@@ -96,7 +97,7 @@ const RenderMyPoolsTab = () => {
               className={`text-sm font-medium ${
                 pools.poolStatus === 1
                   ? "text-green-500"
-                  : "text-red-500"
+                  : "text-yellow-500"
               }`}
             >
               {pools.poolStatus === 1? (
