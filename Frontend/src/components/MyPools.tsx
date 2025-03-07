@@ -11,14 +11,14 @@ const RenderGameView = () =>{
 
 
 
-    const handleMakeChoice = (selected) => {
+  const handleMakeChoice = (selected) => {
         setChoice(selected);
         setTimeout(() => {
          
           setChoice(null);
           setRound(prev => prev + 1);
         }, 2000);
-      };
+    };
 
 
 

@@ -10,24 +10,14 @@ import { PoolInterface } from "../utils/Interfaces";
 
 import { formatFigures } from "../utils/convertion";
 import { useAccount, useWatchContractEvent, useReadContract } from "wagmi";
+import { setPoolNames } from "../utils/utilFunction";
 
 const RenderMyPoolsTab = () => {
   const [selectedPool, setSelectedPool] = useState<PoolInterface[]>([]);
   const { address } = useAccount();
   const navigate = useNavigate();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "filling":
-        return "text-yellow-500";
-      case "starting":
-        return "text-green-500";
-      case "active":
-        return "text-blue-500";
-      default:
-        return "text-gray-500";
-    }
-  };
+
 
   const fetchPools = () => {
     if (userPools) {
@@ -52,8 +42,6 @@ const RenderMyPoolsTab = () => {
 
   const {
     data: userPools,
-    isLoading,
-    error,
   } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
@@ -84,20 +72,7 @@ const RenderMyPoolsTab = () => {
     );
   };
 
-  const setPoolNames = (poolId: number) => {
-    const poolNames = [
-      "Aqua Fortune Pool",
-      "Crypto Waves",
-      "DeFi Dive",
-      "Ether Oasis",
-      "Blockchain Rapids",
-      "Moonshot Lagoon",
-      "Whale's Haven",
-      "Staking Sanctuary",
-    ];
-    return poolNames[poolId];
-  };
-  console.log(userPools)
+  console.log(userPools);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {selectedPool.map((pools) => (
@@ -181,12 +156,17 @@ const RenderMyPoolsTab = () => {
                 : "hover:opacity-90 active:scale-95"
             }`}
             onClick={() => handlePlay(pools)}
-            disabled={pools.currentParticipants !== pools.maxParticipants || pools.prizePool=== 2}
-            
+            disabled={
+              pools.currentParticipants !== pools.maxParticipants ||
+              pools.prizePool === 2
+            }
           >
-           {pools.poolStatus == 1 && <PlayCircle size={20} />} 
-            {pools.poolStatus == 1 ? <span>Play Now</span> :  <span>Game Starts Soon</span>}
-            
+            {pools.poolStatus == 1 && <PlayCircle size={20} />}
+            {pools.poolStatus == 1 ? (
+              <span>Play Now</span>
+            ) : (
+              <span>Game Starts Soon</span>
+            )}
           </button>
         </motion.div>
       ))}

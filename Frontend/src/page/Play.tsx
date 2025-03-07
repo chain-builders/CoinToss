@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { formatTime } from "../utils/utilFunction";
+import { formatTime, setPoolNames } from "../utils/utilFunction";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useWatchContractEvent,
+  useReadContract,
+  useAccount
 } from "wagmi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
@@ -18,6 +20,7 @@ const PlayGame = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const pool = location.state.pools;
+  const {address}=useAccount()
 
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
@@ -35,6 +38,20 @@ const PlayGame = () => {
     subMessage: "",
   });
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+
+
+  // _________________________________testing ________________
+  const {
+    data: playerStatus,
+    refetch: refetchPlayerStatus,
+    isError: isStatusError,
+    isLoading: isStatusLoading,
+  } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    functionName: "getPlayerStatus",
+    args: [BigInt(pool.id), address],
+  });
 
   const {
     writeContract,
@@ -54,12 +71,16 @@ const PlayGame = () => {
   // _______________________________________Countdown logic and transaction processing after countdown______________________________________________________________
 
   useEffect(() => {
-    // Handle timer countdown
+
+    console.log(`Effect running: timer=${timer}, waiting=${isWaitingForOthers}, 
+      selected=${selectedChoice}, isConfirmed=${isConfirmed}, 
+      isPending=${isWritePending || isConfirming}`);
+  
+    
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-
       return () => clearInterval(interval);
     }
     // Handle timer reaching zero, but ONLY if not waiting for others
@@ -68,13 +89,16 @@ const PlayGame = () => {
       console.log(`when timer stops ${selectedChoice}`);
       if (isWritePending || isConfirming) {
         console.log(`when transaction is pending ${selectedChoice}`);
+
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
+
       } else if (writeError || receiptError) {
         console.log(`when transaction error ${selectedChoice}`);
+
         showNotification(
           false,
           "Transaction Failed",
@@ -83,6 +107,7 @@ const PlayGame = () => {
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
+
       } else if (isConfirmed) {
         console.log(`when transaction is confirmed ${selectedChoice}`);
         setIsWaitingForOthers(true);
@@ -98,7 +123,14 @@ const PlayGame = () => {
     writeError,
     receiptError,
     isWaitingForOthers,
+
   ]);
+  
+  useEffect(() => {
+    if (selectedChoice && isConfirmed) {
+      setIsWaitingForOthers(true);
+    }
+  }, [selectedChoice, isConfirmed]);
   // -----------------------------------------Handle player choice selection------------------------------------------------------
 
   const handleMakeChoice = async (selected: PlayerChoice) => {
@@ -137,9 +169,21 @@ const PlayGame = () => {
   // -----------------------------------------Handle transaction success or error----------------------------------------
   useEffect(() => {
     if (isConfirmed) {
+      console.log("Transaction confirmed!");
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
+
+      // Poll the smart contract to verify the state change
+      const interval = setInterval(async () => {
+        const { data: updatedStatus } = await refetchPlayerStatus();
+        if (updatedStatus) {
+          console.log("Player status updated:", updatedStatus);
+          clearInterval(interval);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(interval);
     }
 
     if (writeError) {
@@ -285,6 +329,7 @@ const PlayGame = () => {
   }, []);
 
   //__________________Waiting For Other Players ________________________________
+  
   useEffect(() => {
     if (selectedChoice && isConfirmed) {
       setIsWaitingForOthers(true);
