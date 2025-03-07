@@ -16,8 +16,7 @@ import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
-import { useNavigate } from "react-router-dom";
-import { usePoolEvents } from "../hooks/usePoolEvents";
+import {setPool}
 import toast from "react-hot-toast";
 // import AboutToFull from "./AboutToFull";
 
@@ -256,14 +255,66 @@ const PoolsInterface: React.FC = () => {
   // set pool names
   const setPoolNames = (poolId: number) => {
     const poolNames = [
-      "Aqua Fortune Pool",
-      "Crypto Waves",
-      "DeFi Dive",
-      "Ether Oasis",
-      "Blockchain Rapids",
-      "Moonshot Lagoon",
-      "Whale's Haven",
-      "Staking Sanctuary",
+      "Core Cascade",
+      "Core Current",
+      "Core Vortex",
+      "Core Nexus",
+      "Core Horizon",
+      "Core Pulse",
+      "Core Tide",
+      "Core Forge",
+      "Core Spark",
+      "Core Vault",
+      "Core Nexus",
+      "Core Ascent",
+      "Core Zenith",
+      "Core Orbit",
+      "Core Prism",
+      "Core Matrix",
+      "Core Infinity",
+      "Core Genesis",
+      "Core Epoch",
+      "Core Nova",
+      "Bitcoin Bay",
+      "Satoshi Stream",
+      "Halving Harbor",
+      "Blockstream Basin",
+      "Lightning Lagoon",
+      "Hashrate Haven",
+      "Mining Mirage",
+      "Blockchain Bluff",
+      "Crypto Cove",
+      "Digital Delta",
+      "Ledger Lagoon",
+      "Node Nook",
+      "Wallet Waters",
+      "Genesis Gulf",
+      "Fork Fjord",
+      "Block Bay",
+      "Chain Channel",
+      "Decentralized Delta",
+      "Peer-to-Peer Pool",
+      "Immutable Inlet",
+      "Crypto Current",
+      "DeFi Depth",
+      "Staking Stream",
+      "Liquidity Lake",
+      "Yield Yacht",
+      "Smart Contract Sea",
+      "Token Tide",
+      "NFT Nook",
+      "DAO Dock",
+      "Oracle Ocean",
+      "Consensus Cove",
+      "Gas Fee Gulf",
+      "HODL Harbor",
+      "Whitepaper Waters",
+      "Airdrop Aqua",
+      "ICO Inlet",
+      "Sharding Shore",
+      "Layer 2 Lagoon",
+      "Cross-Chain Creek",
+      "Zero-Knowledge Zone",
     ];
     return poolNames[poolId % poolNames.length];
   };

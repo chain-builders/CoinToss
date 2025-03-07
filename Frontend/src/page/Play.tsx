@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { formatTime } from "../utils/utilFunction";
+import { formatTime, setPoolNames } from "../utils/utilFunction";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useWatchContractEvent,
+  useReadContract,
+  useAccount
 } from "wagmi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
@@ -18,6 +20,7 @@ const PlayGame = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const pool = location.state.pools;
+  const {address}=useAccount()
 
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
@@ -35,6 +38,20 @@ const PlayGame = () => {
     subMessage: "",
   });
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+
+
+  // _________________________________testing ________________
+  const {
+    data: playerStatus,
+    refetch: refetchPlayerStatus,
+    isError: isStatusError,
+    isLoading: isStatusLoading,
+  } = useReadContract({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    functionName: "getPlayerStatus",
+    args: [BigInt(pool.id), address],
+  });
 
   const {
     writeContract,
@@ -64,37 +81,24 @@ const PlayGame = () => {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 1000);
-  
       return () => clearInterval(interval);
-    } 
-    else if (timer === 0) {
-     
+    }
+    // Handle timer reaching zero, but ONLY if not waiting for others
+    else if (timer === 0 && !isWaitingForOthers) {
       setIsTimerActive(false);
-      console.log(`Timer reached zero: waiting=${isWaitingForOthers}, 
-        selected=${selectedChoice}, isConfirmed=${isConfirmed}`);
-  
-      
-      if (!selectedChoice) {
-        console.log("Showing time's up notification - no choice made");
-        showNotification(
-          false,
-          "Time's up!",
-          "You didn't make a choice in time. You have been eliminated"
-        );
-        setTimeout(() => {
-          navigate("/explore");
-        }, 3000);
-      } 
-      else if (isWritePending || isConfirming) {
-        console.log("Showing processing notification - transaction pending");
+      console.log(`when timer stops ${selectedChoice}`);
+      if (isWritePending || isConfirming) {
+        console.log(`when transaction is pending ${selectedChoice}`);
+
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
-      } 
-      
-      else if (writeError || receiptError) {
+
+      } else if (writeError || receiptError) {
+        console.log(`when transaction error ${selectedChoice}`);
+
         showNotification(
           false,
           "Transaction Failed",
@@ -103,10 +107,9 @@ const PlayGame = () => {
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
-      }
-     
-      else if (isConfirmed) {
-        console.log("Setting isWaitingForOthers to true");
+
+      } else if (isConfirmed) {
+        console.log(`when transaction is confirmed ${selectedChoice}`);
         setIsWaitingForOthers(true);
       }
     }
@@ -119,6 +122,8 @@ const PlayGame = () => {
     isConfirming,
     writeError,
     receiptError,
+    isWaitingForOthers,
+
   ]);
   
   useEffect(() => {
@@ -131,8 +136,8 @@ const PlayGame = () => {
   const handleMakeChoice = async (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3) return;
     setSelectedChoice(selected);
-    console.log(selected)
-    console.log(selectedChoice)
+    console.log(selected);
+    console.log(selectedChoice);
     startCoinAnimation();
     await handleSubmit(selected);
   };
@@ -140,12 +145,12 @@ const PlayGame = () => {
   // __________________________________________Handle submission to the smart contract___________________________________________________
 
   const handleSubmit = async (selected: PlayerChoice) => {
-    console.log(selected)
+    console.log(selected);
     if (!selected || selected === PlayerChoice.NONE) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
       writeContract({
@@ -164,9 +169,21 @@ const PlayGame = () => {
   // -----------------------------------------Handle transaction success or error----------------------------------------
   useEffect(() => {
     if (isConfirmed) {
+      console.log("Transaction confirmed!");
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
+
+      // Poll the smart contract to verify the state change
+      const interval = setInterval(async () => {
+        const { data: updatedStatus } = await refetchPlayerStatus();
+        if (updatedStatus) {
+          console.log("Player status updated:", updatedStatus);
+          clearInterval(interval);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(interval);
     }
 
     if (writeError) {
@@ -218,16 +235,45 @@ const PlayGame = () => {
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       for (const log of logs) {
+        console.log("Received logs--------:", logs);
         try {
-          const poolId = log.topics[1];
           console.log("Log received:", log);
 
-          const [eventPoolId, roundNumber, winningSelection] = [
-            BigInt(log.topics[1]),
-            BigInt("0"),
-            BigInt("0"),
-          ];
+          // Check if args exists
+          if (!log.args) {
+            console.error("No args in log:", log);
+            continue;
+          }
 
+          // Extract the data from log.args using the proper field names from your event
+          const eventPoolId =
+            typeof log.args.poolId === "bigint" ? log.args.poolId : undefined;
+          const roundNumber =
+            typeof log.args.roundNumber === "bigint"
+              ? log.args.roundNumber
+              : undefined;
+          const winningSelection =
+            typeof log.args.winningChoice === "bigint"
+              ? log.args.winningChoice
+              : undefined;
+
+          // Verify we have all necessary data
+          if (
+            !eventPoolId ||
+            roundNumber === undefined ||
+            winningSelection === undefined
+          ) {
+            console.error("Invalid event data structure:", log.args);
+            continue;
+          }
+
+          console.log("Round completed:", {
+            poolId: Number(eventPoolId),
+            roundNumber: Number(roundNumber),
+            winningSelection: Number(winningSelection),
+          });
+
+          // Proceed only if this event is for the current pool
           if (eventPoolId === BigInt(pool.id)) {
             stopCoinAnimation();
 
@@ -242,6 +288,7 @@ const PlayGame = () => {
 
             setTimeout(() => {
               if (userSurvived) {
+                setIsWaitingForOthers(false);
                 setRound(Number(roundNumber) + 1);
                 setTimer(20);
                 setIsTimerActive(true);
@@ -272,8 +319,6 @@ const PlayGame = () => {
       setIsWaitingForOthers(true);
     }
   }, [selectedChoice, isConfirmed]);
-   
-
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
