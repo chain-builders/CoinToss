@@ -29,6 +29,8 @@ const PlayGame = () => {
   );
   const [round, setRound] = useState(1);
   const [timer, setTimer] = useState(20); // Timer starts immediately
+  const [isEliminated, setIsEliminated] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false)
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
   const [coinRotation, setCoinRotation] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,12 +43,12 @@ const PlayGame = () => {
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
   const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
   const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
+  const [hasClaimed, setHasClaimed] = useState(false);
 
   // Fetch player status
   const {
     data: playerStatus,
     refetch: refetchPlayerStatus,
-    isError: isStatusError,
     isLoading: isStatusLoading,
   } = useReadContract<PlayerStatus>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -56,8 +58,10 @@ const PlayGame = () => {
   });
   console.log(playerStatus);
 
-  const isEliminated = playerStatus ? playerStatus[1] : false;
-  const isWinnerStatus = playerStatus ? playerStatus[2] : false;
+  const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
+  const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
+  const hasClaimedStatus = playerStatus ? playerStatus[3] : false;
+
   // Send transaction
   const {
     writeContract,
@@ -115,9 +119,18 @@ const PlayGame = () => {
     isConfirmed,
   ]);
 
+  useEffect(() => {
+    if (pool && (pool.status !== 2 || hasClaimed)) {
+      navigate("/explore"); // Redirect if pool is not active or prize has been claimed
+    }
+  }, [pool, hasClaimed]);
+
+  console.log(pool);
+
   // Handle player elimination
   useEffect(() => {
-    if (playerStatus && playerStatus?.[1]) {
+    if (isEliminatedStatus) {
+      setIsEliminated(true);
       setIsTimerActive(false);
       showNotification(
         false,
@@ -128,12 +141,20 @@ const PlayGame = () => {
         navigate("/explore");
       }, 3000);
     }
-  }, [playerStatus?.[1]]);
+  }, [isEliminatedStatus]);
+  // Handle player winning the game
+  useEffect(() => {
+    if (isWinnerStatus && pool?.status === "CLOSED") {
+      setIsWinner(true);
+      setShowWinnerPopup(true); // Show winner pop-up
+    }
+  }, [isWinnerStatus, pool]);
 
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || playerStatus?.[1]) return;
+    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; // Prevent reselection
     setSelectedChoice(selected);
+    setHasSubmitted(true); // Mark as submitted
     startCoinAnimation();
     await handleSubmit(selected);
   };
@@ -180,44 +201,72 @@ const PlayGame = () => {
   }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
+  // useWatchContractEvent({
+  //   address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+  //   abi: CoinTossABI.abi,
+  //   eventName: "RoundCompleted",
+  //   onLogs: (logs) => {
+  //     for (const log of logs) {
+  //       try {
+  //         const poolId = log.topics[1];
+  //         console.log("Log received:", log);
+
+  //         const [eventPoolId, roundNumber, winningSelection] = [
+  //           BigInt(log.topics[1]),
+  //           BigInt("0"),
+  //           BigInt("0"),
+  //         ];
+
+  //         if (eventPoolId === BigInt(pool.id)) {
+  //           stopCoinAnimation();
+  //           refetchPlayerStatus();
+
+  //           const userSurvived = selectedChoice === Number(winningSelection);
+  //           showNotification(
+  //             userSurvived,
+  //             `Round ${roundNumber} Completed!`,
+  //             userSurvived
+  //               ? "You advanced to the next round!"
+  //               : "You were eliminated!"
+  //           );
+
+  //           setTimeout(() => {
+  //             if (userSurvived) {
+  //               setRound(Number(roundNumber) + 1);
+  //               setTimer(20);
+  //               setIsTimerActive(true);
+  //             } else {
+  //               navigate("/explore");
+  //             }
+  //           }, 3000);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error processing event log:", error);
+  //       }
+  //     }
+  //   },
+  // });
   useWatchContractEvent({
-    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    address: CORE_CONTRACT_ADDRESS,
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       for (const log of logs) {
         try {
-          const poolId = log.topics[1];
-          console.log("Log received:", log);
+          const poolId = BigInt(log.topics[1]);
+          const roundNumber = BigInt(log.args?.roundNumber);
+          const winningSelection = BigInt(log.args?.winningSelection);
 
-          const [eventPoolId, roundNumber, winningSelection] = [
-            BigInt(log.topics[1]),
-            BigInt("0"),
-            BigInt("0"),
-          ];
-
-          if (eventPoolId === BigInt(pool.id)) {
-            stopCoinAnimation();
-            refetchPlayerStatus();
-
+          if (poolId === BigInt(pool.id)) {
             const userSurvived = selectedChoice === Number(winningSelection);
-            showNotification(
-              userSurvived,
-              `Round ${roundNumber} Completed!`,
-              userSurvived
-                ? "You advanced to the next round!"
-                : "You were eliminated!"
-            );
-
-            setTimeout(() => {
-              if (userSurvived) {
-                setRound(Number(roundNumber) + 1);
-                setTimer(20);
-                setIsTimerActive(true);
-              } else {
-                navigate("/explore");
-              }
-            }, 3000);
+            if (userSurvived) {
+              setRound(Number(roundNumber) + 1); // Move to the next round
+              setTimer(20); // Reset timer
+              setIsTimerActive(true);
+              setHasSubmitted(false); // Allow selection in the next round
+            } else {
+              setIsEliminated(true); // Mark as eliminated
+            }
           }
         } catch (error) {
           console.error("Error processing event log:", error);
@@ -244,11 +293,7 @@ const PlayGame = () => {
   };
 
   // Show notification
-  const showNotification = (
-    isSuccess: boolean,
-    message: string,
-    subMessage: string
-  ) => {
+  const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
     setNotification({ isVisible: true, isSuccess, message, subMessage });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, isVisible: false }));
@@ -256,15 +301,15 @@ const PlayGame = () => {
         navigate("/explore");
       }
     }, 3000);
-  };
-
-// Handle player winning the game
-useEffect(() => {
-  if (isWinnerStatus ) {
-    setIsWinner(true);
-    setShowWinnerPopup(true); // Show winner pop-up
   }
-}, [isWinnerStatus]);
+
+  // Handle player winning the game
+  useEffect(() => {
+    if (isWinnerStatus) {
+      setIsWinner(true);
+      setShowWinnerPopup(true); // Show winner pop-up
+    }
+  }, [isWinnerStatus]);
   // Handle token claim
   const handleClaimPrize = async () => {
     try {

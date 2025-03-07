@@ -17,8 +17,6 @@ const RenderMyPoolsTab = () => {
   const { address } = useAccount();
   const navigate = useNavigate();
 
-
-
   const fetchPools = () => {
     if (userPools) {
       if (!Array.isArray(userPools)) {
@@ -40,9 +38,7 @@ const RenderMyPoolsTab = () => {
     }
   };
 
-  const {
-    data: userPools,
-  } = useReadContract({
+  const { data: userPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
     functionName: "getUserPools",
@@ -98,14 +94,16 @@ const RenderMyPoolsTab = () => {
             </div>
             <div
               className={`text-sm font-medium ${
-                pools.currentParticipants === pools.maxParticipants
+                pools.poolStatus === 1
                   ? "text-green-500"
-                  : "text-yellow-500"
+                  : "text-red-500"
               }`}
             >
-              {pools.currentParticipants === pools.maxParticipants
-                ? "Starting in 40 seconds"
-                : "filling"}
+              {pools.poolStatus === 1? (
+                <p>Starting in 40 seconds</p>
+              ) : pools.poolStatus === 2 ? (
+                <p>Closed</p>
+              ) : null}
             </div>
           </div>
 
@@ -158,15 +156,13 @@ const RenderMyPoolsTab = () => {
             onClick={() => handlePlay(pools)}
             disabled={
               pools.currentParticipants !== pools.maxParticipants ||
-              pools.prizePool === 2
+              pools.poolStatus === 2
             }
           >
             {pools.poolStatus == 1 && <PlayCircle size={20} />}
-            {pools.poolStatus == 1 ? (
-              <span>Play Now</span>
-            ) : (
-              <span>Game Starts Soon</span>
-            )}
+            {pools.poolStatus == 1 && <span>Play Now</span>}
+
+            {pools.poolStatus == 2 && <span>Pool Closed</span>}
           </button>
         </motion.div>
       ))}
