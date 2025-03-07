@@ -30,7 +30,7 @@ const PlayGame = () => {
   const [round, setRound] = useState(1);
   const [timer, setTimer] = useState(20); // Timer starts immediately
   const [isEliminated, setIsEliminated] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false)
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
   const [coinRotation, setCoinRotation] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,11 +120,16 @@ const PlayGame = () => {
   ]);
 
   useEffect(() => {
-    if (pool && (pool.status !== 2 || hasClaimed)) {
-      navigate("/explore"); // Redirect if pool is not active or prize has been claimed
+    // Only redirect if pool doesn't exist, is not active, or prize has been claimed
+    if (
+      !pool ||
+      (typeof pool.status === "number" && pool.status !== 2) ||
+      (typeof pool.status === "string" && pool.status !== "ACTIVE") ||
+      hasClaimed
+    ) {
+      navigate("/explore");
     }
-  }, [pool, hasClaimed]);
-
+  }, [pool, hasClaimed, navigate]);
   console.log(pool);
 
   // Handle player elimination
@@ -144,7 +149,7 @@ const PlayGame = () => {
   }, [isEliminatedStatus]);
   // Handle player winning the game
   useEffect(() => {
-    if (isWinnerStatus && pool?.status === "CLOSED") {
+    if (isWinnerStatus && pool?.status === 2) {
       setIsWinner(true);
       setShowWinnerPopup(true); // Show winner pop-up
     }
@@ -293,7 +298,11 @@ const PlayGame = () => {
   };
 
   // Show notification
-  const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
+  const showNotification = (
+    isSuccess: boolean,
+    message: string,
+    subMessage: string
+  ) => {
     setNotification({ isVisible: true, isSuccess, message, subMessage });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, isVisible: false }));
@@ -301,7 +310,7 @@ const PlayGame = () => {
         navigate("/explore");
       }
     }, 3000);
-  }
+  };
 
   // Handle player winning the game
   useEffect(() => {
