@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { formatEther } from "ethers";
 import {
   useAccount,
   useBalance,
@@ -17,6 +18,7 @@ import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
 import toast from "react-hot-toast";
+import { setPoolNames } from "../utils/utilFunction";
 // import AboutToFull from "./AboutToFull";
 
 const PoolsInterface: React.FC = () => {
@@ -31,6 +33,7 @@ const PoolsInterface: React.FC = () => {
   const [joining, setJoining] = useState(false);
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
   const [participants, setParticipants] = useState<`0x${string}`[]>([]);
+
   const {
     writeContract,
     data: hash,
@@ -76,18 +79,22 @@ const PoolsInterface: React.FC = () => {
         // Update UI
         setParticipants((prev) => [...prev, player]);
 
-        // Show notification
-        toast.success(
-          `New player ${player.substring(0, 6)}...${player.substring(
-            38
-          )} joined pool #${Number(poolId)}`
-        );
-
-        console.log(
-          `Toaster has toasted....New player ${player.substring(
-            0,
-            6
-          )}...${player.substring(38)} joined pool #${Number(poolId)}`
+        toast.custom(
+          <div className="flex items-center bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-lg shadow-lg">
+            <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+              <span className="text-xl">👤</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white">New Challenger!</h3>
+              <p className="text-green-100">
+                {`${player.substring(0, 6)}...${player.substring(38)}`} joined pool #{Number(poolId)}
+              </p>
+            </div>
+          </div>,
+          { 
+            duration: 4000,
+            position: 'top-right'
+          }
         );
 
         // Show pulse animation on the pool card
@@ -140,7 +147,6 @@ const PoolsInterface: React.FC = () => {
         prizePool: Number(pool.prizePool),
         poolStatus: pool.status,
       }));
-      console.log(allPools);
       setNewPools(transformedPools);
     }
   }, [allPools]);
@@ -186,7 +192,25 @@ const PoolsInterface: React.FC = () => {
   }, [isConfirmed, txError, userJoinedPoolIds]);
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
-    toast.success(`Manually triggered join notification for pool #${poolId}`);
+    const readableAmount = formatEther(entryFee.toString());
+  
+    toast.success(
+      <div className="flex flex-col">
+        <span className="text-lg font-bold">🎮 Game On!</span>
+        <span>You are about  to Enter Pool #{poolId} with {readableAmount} ETH</span>
+        <span className="text-sm mt-1">Get ready to flip!</span>
+      </div>,
+      {
+        duration: 5000,
+        icon: '🎲',
+        style: {
+          background: 'linear-gradient(to right, #4F46E5, #7C3AED)',
+          color: 'white',
+        },
+      }
+    );
+    
+
     setIsStaking(true);
     try {
       writeContract({
@@ -199,7 +223,6 @@ const PoolsInterface: React.FC = () => {
       });
       setJoining(true);
     } catch (err) {
-      console.error("Error joining pool:", err);
       setIsStaking(false);
       setJoining(false);
     }
@@ -251,74 +274,7 @@ const PoolsInterface: React.FC = () => {
     }
   };
 
-  // set pool names
-  const setPoolNames = (poolId: number) => {
-    const poolNames = [
-      "Core Cascade",
-      "Core Current",
-      "Core Vortex",
-      "Core Nexus",
-      "Core Horizon",
-      "Core Pulse",
-      "Core Tide",
-      "Core Forge",
-      "Core Spark",
-      "Core Vault",
-      "Core Nexus",
-      "Core Ascent",
-      "Core Zenith",
-      "Core Orbit",
-      "Core Prism",
-      "Core Matrix",
-      "Core Infinity",
-      "Core Genesis",
-      "Core Epoch",
-      "Core Nova",
-      "Bitcoin Bay",
-      "Satoshi Stream",
-      "Halving Harbor",
-      "Blockstream Basin",
-      "Lightning Lagoon",
-      "Hashrate Haven",
-      "Mining Mirage",
-      "Blockchain Bluff",
-      "Crypto Cove",
-      "Digital Delta",
-      "Ledger Lagoon",
-      "Node Nook",
-      "Wallet Waters",
-      "Genesis Gulf",
-      "Fork Fjord",
-      "Block Bay",
-      "Chain Channel",
-      "Decentralized Delta",
-      "Peer-to-Peer Pool",
-      "Immutable Inlet",
-      "Crypto Current",
-      "DeFi Depth",
-      "Staking Stream",
-      "Liquidity Lake",
-      "Yield Yacht",
-      "Smart Contract Sea",
-      "Token Tide",
-      "NFT Nook",
-      "DAO Dock",
-      "Oracle Ocean",
-      "Consensus Cove",
-      "Gas Fee Gulf",
-      "HODL Harbor",
-      "Whitepaper Waters",
-      "Airdrop Aqua",
-      "ICO Inlet",
-      "Sharding Shore",
-      "Layer 2 Lagoon",
-      "Cross-Chain Creek",
-      "Zero-Knowledge Zone",
-    ];
-    return poolNames[poolId % poolNames.length];
-  };
-
-  const getProgressPercentage = (pools) => {
+  const getProgressPercentage = (pools:PoolInterface) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
     );
@@ -431,7 +387,7 @@ const PoolsInterface: React.FC = () => {
                     <div>
                       <p className="text-gray-400 text-xs">Stake</p>
                       <p className="font-medium text-white">
-                        {formatFigures(pool.entryFee)}
+                        {formatFigures(pool.entryFee.toString())}
                       </p>
                     </div>
                   </div>
@@ -449,7 +405,7 @@ const PoolsInterface: React.FC = () => {
                     <div>
                       <p className="text-gray-400 text-xs">Pool Prize</p>
                       <p className="font-medium text-white">
-                        {formatFigures(pool.prizePool)}
+                        {formatFigures(pool.prizePool.toString())}
                       </p>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import RenderGameView from "../components/MyPools";
 import PoolsInterface from "../components/GamePools";
@@ -7,7 +7,7 @@ import RenderMyPoolsTab from "../components/selectedPools";
 
 const MinorityGame = () => {
   const [activeTab, setActiveTab] = useState("explore");
-  const [showGameView, setShowGameView] = useState(false);
+  const [showGameView] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6 w-full">

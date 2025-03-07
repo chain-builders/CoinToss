@@ -205,71 +205,152 @@ const PlayGame = () => {
   }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
+  // useWatchContractEvent({
+  //   address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+  //   abi: CoinTossABI.abi,
+  //   eventName: "RoundCompleted",
+  //   onLogs: (logs) => {
+  //     console.log("RoundCompleted logs received:", logs);
+
+  //     for (const log of logs) {
+  //       try {
+  //         console.log("Processing log:", log);
+
+          
+  //         let poolId, roundNumber, winningSelection;
+
+  //         if (log.args) {
+            
+  //           poolId = BigInt(log.args[0] || log.args.poolId);
+  //           roundNumber = BigInt(log.args[1] || log.args.round);
+  //           winningSelection = BigInt(log.args[2] || log.args.winningSelection);
+  //         } else {
+           
+  //           poolId = BigInt(log.topics[1]);
+  //           const data = log.data;
+  //           console.log("Event data:", data);
+  //           roundNumber = BigInt(0);
+  //           winningSelection = BigInt(0);
+  //         }
+
+  //         console.log("Extracted values:", {
+  //           poolId: poolId.toString(),
+  //           roundNumber: roundNumber.toString(),
+  //           winningSelection: winningSelection.toString(),
+  //         });
+
+  //         if (poolId === BigInt(pool.id)) {
+  //           console.log("Pool ID matched!");
+  //           stopCoinAnimation();
+  //           refetchPlayerStatus();
+
+  //           const userSurvived = selectedChoice === Number(winningSelection);
+  //           console.log("User survived?", userSurvived);
+
+  //           showNotification(
+  //             userSurvived,
+  //             `Round ${roundNumber} Completed!`,
+  //             userSurvived
+  //               ? "You advanced to the next round!"
+  //               : "You were eliminated!"
+  //           );
+
+  //           setTimeout(() => {
+  //             if (userSurvived) {
+  //               setRound(Number(roundNumber) + 1);
+  //               setTimer(20);
+  //               setIsTimerActive(true);
+  //               setHasSubmitted(false);
+  //             } else {
+  //               navigate("/explore");
+  //             }
+  //           }, 3000);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error processing event log:", error);
+  //       }
+  //     }
+  //   },
+  // });
+
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       console.log("RoundCompleted logs received:", logs);
-
+  
       for (const log of logs) {
         try {
           console.log("Processing log:", log);
-
-          // Extract the data based on event structure
-          // The event has three parameters: poolId, round, winningSelection
-          // They might be in args or they might be in topics and data
-          let poolId, roundNumber, winningSelection;
-
-          if (log.args) {
-            // If args is available, use it
-            poolId = BigInt(log.args[0] || log.args.poolId);
-            roundNumber = BigInt(log.args[1] || log.args.round);
-            winningSelection = BigInt(log.args[2] || log.args.winningSelection);
-          } else {
-            // If args is not available, try to extract from topics and data
-            poolId = BigInt(log.topics[1]);
-
-            // Data will contain the non-indexed parameters
-            // You might need to adjust this based on how the RoundCompleted event is defined
-            const data = log.data;
-            // Here you would need to decode the data parameter
-            // For now, just log it to see what's available
-            console.log("Event data:", data);
-
-            // Without proper decoding, we can't access these values reliably
-            roundNumber = BigInt(0);
-            winningSelection = BigInt(0);
+          console.log("Log args:", log.args);
+  
+          // More robust extraction of arguments
+          if (!log.args) {
+            console.error("No args in the event log");
+            continue;
           }
-
+          
+          // Create variables to hold the extracted values
+          let poolId, roundNumber, winningSelection;
+          
+         
+          if (typeof log.args.poolId !== 'undefined') {
+            // Named parameters
+            poolId = log.args.poolId;
+            roundNumber = log.args.round;
+            winningSelection = log.args.winningSelection;
+          } else if (Array.isArray(log.args) || Object.keys(log.args).includes('0')) {
+            // Array-like structure
+            poolId = log.args[0];
+            roundNumber = log.args[1];
+            winningSelection = log.args[2];
+          } else {
+            console.error("Unexpected args structure:", log.args);
+            continue;
+          }
+  
+          // Ensure all values exist
+          if (poolId === undefined || roundNumber === undefined || winningSelection === undefined) {
+            console.error("Missing required values in event args");
+            continue;
+          }
+  
+          // Convert to appropriate types
+          const poolIdBN = BigInt(poolId);
+          const roundNumberBN = BigInt(roundNumber);
+          const winningSelectionBN = BigInt(winningSelection);
+  
           console.log("Extracted values:", {
-            poolId: poolId.toString(),
-            roundNumber: roundNumber.toString(),
-            winningSelection: winningSelection.toString(),
+            poolId: poolIdBN.toString(),
+            roundNumber: roundNumberBN.toString(),
+            winningSelection: winningSelectionBN.toString(),
           });
-
-          if (poolId === BigInt(pool.id)) {
+  
+          // Compare as numbers to avoid type issues
+          if (Number(poolIdBN) === pool.id) {
             console.log("Pool ID matched!");
             stopCoinAnimation();
             refetchPlayerStatus();
-
-            const userSurvived = selectedChoice === Number(winningSelection);
+  
+            const userSurvived = selectedChoice === Number(winningSelectionBN);
             console.log("User survived?", userSurvived);
-
+  
             showNotification(
               userSurvived,
-              `Round ${roundNumber} Completed!`,
+              `Round ${roundNumberBN} Completed!`,
               userSurvived
                 ? "You advanced to the next round!"
                 : "You were eliminated!"
             );
-
+  
             setTimeout(() => {
               if (userSurvived) {
-                setRound(Number(roundNumber) + 1);
+                setRound(Number(roundNumberBN) + 1);
                 setTimer(20);
                 setIsTimerActive(true);
                 setHasSubmitted(false);
+                setSelectedChoice(null); // Reset choice for next round
               } else {
                 navigate("/explore");
               }
@@ -277,11 +358,13 @@ const PlayGame = () => {
           }
         } catch (error) {
           console.error("Error processing event log:", error);
+          console.error("Error details:", error instanceof Error ? error.message : String(error));
+          console.error("Log that caused error:", log);
         }
       }
     },
   });
-
+ 
   // Start/stop coin animation
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
@@ -318,7 +401,7 @@ const PlayGame = () => {
   useEffect(() => {
     if (isWinnerStatus) {
       setIsWinner(true);
-      setShowWinnerPopup(true); // Show winner pop-up
+      setShowWinnerPopup(true); 
     }
   }, [isWinnerStatus]);
   // Handle token claim
