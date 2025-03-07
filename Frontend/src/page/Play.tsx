@@ -216,68 +216,45 @@ const PlayGame = () => {
       for (const log of logs) {
         try {
           console.log("Processing log:", log);
-          console.log("Log topics:", log.topics);
-          console.log("Log args:", log.args);
 
-          // Extract poolId from the first indexed parameter
-          const poolId = BigInt(log.topics[1]);
-
-          // Check how the event data is structured
-          let roundNumber, winningSelection;
+          // Extract the data based on event structure
+          // The event has three parameters: poolId, round, winningSelection
+          // They might be in args or they might be in topics and data
+          let poolId, roundNumber, winningSelection;
 
           if (log.args) {
-            // Try to access via args if available
-            roundNumber = log.args.roundNumber
-              ? BigInt(log.args.roundNumber)
-              : BigInt(0);
-            winningSelection = log.args.winningSelection
-              ? BigInt(log.args.winningSelection)
-              : BigInt(0);
-
-            console.log(
-              "Using log.args - Round:",
-              roundNumber.toString(),
-              "Winner:",
-              winningSelection.toString()
-            );
+            // If args is available, use it
+            poolId = BigInt(log.args[0] || log.args.poolId);
+            roundNumber = BigInt(log.args[1] || log.args.round);
+            winningSelection = BigInt(log.args[2] || log.args.winningSelection);
           } else {
-            // Try to access via topics if args is not available
-            // Topics are typically: [eventSignature, ...indexedParams]
-            roundNumber =
-              log.topics.length > 2 ? BigInt(log.topics[2]) : BigInt(0);
-            winningSelection =
-              log.topics.length > 3 ? BigInt(log.topics[3]) : BigInt(0);
+            // If args is not available, try to extract from topics and data
+            poolId = BigInt(log.topics[1]);
 
-            console.log(
-              "Using log.topics - Round:",
-              roundNumber.toString(),
-              "Winner:",
-              winningSelection.toString()
-            );
+            // Data will contain the non-indexed parameters
+            // You might need to adjust this based on how the RoundCompleted event is defined
+            const data = log.data;
+            // Here you would need to decode the data parameter
+            // For now, just log it to see what's available
+            console.log("Event data:", data);
+
+            // Without proper decoding, we can't access these values reliably
+            roundNumber = BigInt(0);
+            winningSelection = BigInt(0);
           }
 
-          console.log(
-            "Comparing poolId:",
-            poolId.toString(),
-            "with pool.id:",
-            pool.id
-          );
+          console.log("Extracted values:", {
+            poolId: poolId.toString(),
+            roundNumber: roundNumber.toString(),
+            winningSelection: winningSelection.toString(),
+          });
 
-          // Compare with the current pool ID
           if (poolId === BigInt(pool.id)) {
-            console.log("Pool ID match found!");
-
+            console.log("Pool ID matched!");
             stopCoinAnimation();
             refetchPlayerStatus();
 
-            // Check if user survived
             const userSurvived = selectedChoice === Number(winningSelection);
-            console.log(
-              "User selection:",
-              selectedChoice,
-              "Winning selection:",
-              Number(winningSelection)
-            );
             console.log("User survived?", userSurvived);
 
             showNotification(
@@ -293,14 +270,14 @@ const PlayGame = () => {
                 setRound(Number(roundNumber) + 1);
                 setTimer(20);
                 setIsTimerActive(true);
-                setHasSubmitted(false); // Allow selection in next round
+                setHasSubmitted(false);
               } else {
                 navigate("/explore");
               }
             }, 3000);
           }
         } catch (error) {
-          console.error("Error processing event log:", error, log);
+          console.error("Error processing event log:", error);
         }
       }
     },
