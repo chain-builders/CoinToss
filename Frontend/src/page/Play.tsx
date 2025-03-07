@@ -24,7 +24,9 @@ const PlayGame = () => {
   const { address } = useAccount();
 
   const [isTimerActive, setIsTimerActive] = useState(true);
-  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
+    null
+  );
   const [round, setRound] = useState(1);
   const [timer, setTimer] = useState(20); // Timer starts immediately
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
@@ -37,6 +39,8 @@ const PlayGame = () => {
     subMessage: "",
   });
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+  const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
+  const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
 
   // Fetch player status
   const {
@@ -50,7 +54,10 @@ const PlayGame = () => {
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
-  console.log(playerStatus)
+  console.log(playerStatus);
+
+  const isEliminated = playerStatus ? playerStatus[1] : false;
+  const isWinnerStatus = playerStatus ? playerStatus[2] : false;
   // Send transaction
   const {
     writeContract,
@@ -79,9 +86,17 @@ const PlayGame = () => {
       setIsTimerActive(false);
 
       if (isWritePending || isConfirming) {
-        showNotification(true, "Processing...", "Your choice has been submitted and is being processed");
+        showNotification(
+          true,
+          "Processing...",
+          "Your choice has been submitted and is being processed"
+        );
       } else if (writeError || receiptError) {
-        showNotification(false, "Transaction Failed", "Your transaction failed to process. You have been eliminated");
+        showNotification(
+          false,
+          "Transaction Failed",
+          "Your transaction failed to process. You have been eliminated"
+        );
         setTimeout(() => {
           navigate("/explore");
         }, 3000);
@@ -89,22 +104,35 @@ const PlayGame = () => {
         setIsWaitingForOthers(true);
       }
     }
-  }, [isTimerActive, timer, isWaitingForOthers, isWritePending, isConfirming, writeError, receiptError, isConfirmed]);
+  }, [
+    isTimerActive,
+    timer,
+    isWaitingForOthers,
+    isWritePending,
+    isConfirming,
+    writeError,
+    receiptError,
+    isConfirmed,
+  ]);
 
   // Handle player elimination
   useEffect(() => {
-    if (playerStatus && playerStatus?.isEliminated) {
+    if (playerStatus && playerStatus?.[1]) {
       setIsTimerActive(false);
-      showNotification(false, "Eliminated", "You have been eliminated from the pool.");
+      showNotification(
+        false,
+        "Eliminated",
+        "You have been eliminated from the pool."
+      );
       setTimeout(() => {
         navigate("/explore");
       }, 3000);
     }
-  }, [playerStatus?.isEliminated]);
+  }, [playerStatus?.[1]]);
 
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || playerStatus?.isEliminated) return;
+    if (!isTimerActive || timer <= 3 || playerStatus?.[1]) return;
     setSelectedChoice(selected);
     startCoinAnimation();
     await handleSubmit(selected);
@@ -143,7 +171,11 @@ const PlayGame = () => {
 
     if (writeError || receiptError) {
       setIsSubmitting(false);
-      showNotification(false, "Transaction Failed", "Your transaction failed to process.");
+      showNotification(
+        false,
+        "Transaction Failed",
+        "Your transaction failed to process."
+      );
     }
   }, [isConfirmed, writeError, receiptError]);
 
@@ -212,7 +244,11 @@ const PlayGame = () => {
   };
 
   // Show notification
-  const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
+  const showNotification = (
+    isSuccess: boolean,
+    message: string,
+    subMessage: string
+  ) => {
     setNotification({ isVisible: true, isSuccess, message, subMessage });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, isVisible: false }));
@@ -220,6 +256,33 @@ const PlayGame = () => {
         navigate("/explore");
       }
     }, 3000);
+  };
+
+// Handle player winning the game
+useEffect(() => {
+  if (isWinnerStatus ) {
+    setIsWinner(true);
+    setShowWinnerPopup(true); // Show winner pop-up
+  }
+}, [isWinnerStatus]);
+  // Handle token claim
+  const handleClaimPrize = async () => {
+    try {
+      setIsSubmitting(true);
+      await writeContract({
+        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CoinTossABI.abi,
+        functionName: "claimPrize",
+        args: [BigInt(pool.id)],
+      });
+      showNotification(true, "Success!", "Your prize has been claimed!");
+      setShowWinnerPopup(false); // Close pop-up after claiming
+    } catch (err: any) {
+      const errorMessage = err.message || "Transaction failed";
+      showNotification(false, "Transaction Error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -412,6 +475,28 @@ const PlayGame = () => {
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
           <div className="text-yellow-500 text-lg font-bold">
             Waiting for other players to make their selections...
+          </div>
+        </div>
+      )}
+
+      {/* Winner Pop-up */}
+      {showWinnerPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+          <div className="p-8 rounded-xl border-4 border-green-500 bg-green-900 bg-opacity-90 text-center max-w-md transform scale-in-center">
+            <div className="text-6xl mb-4 text-green-400">🏆</div>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              Congratulations!
+            </h2>
+            <p className="text-xl text-green-300">
+              You are the winner of this pool! Claim your prize now.
+            </p>
+            <button
+              onClick={handleClaimPrize}
+              disabled={isSubmitting}
+              className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
+            >
+              {isSubmitting ? "Claiming..." : "Claim Prize"}
+            </button>
           </div>
         </div>
       )}
