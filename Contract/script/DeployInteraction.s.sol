@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {CoinToss} from "../src/CoinToss.sol";
 
 contract DeployInteractionScript is Script {
-    address constant CONTRACT_ADDRESS = 0x2AE39E2d9070e150266e1c59E2bCFC959f72Ee5a;
+    address constant CONTRACT_ADDRESS = 0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070;
     CoinToss public coinToss;
     
     function setUp() public {}
@@ -29,17 +29,17 @@ contract DeployInteractionScript is Script {
         console.log("Created Pool with entry fee:", entryFee2, "and max participants:", maxParticipants2);
         
         uint256 entryFee3 = 0.002 ether;
-        uint256 maxParticipants3 = 3;
+        uint256 maxParticipants3 = 7;
         coinToss.createPool(entryFee3, maxParticipants3);
         console.log("Created Pool with entry fee:", entryFee3, "and max participants:", maxParticipants3);
 
         uint256 entryFee4 = 0.001 ether;
-        uint256 maxParticipants4 = 6;
+        uint256 maxParticipants4 =3;
         coinToss.createPool(entryFee4, maxParticipants4);
         console.log("Created Pool with entry fee:", entryFee4, "and max participants:", maxParticipants4);
 
         uint256 entryFee5 = 0.001 ether;
-        uint256 maxParticipants5 = 4;
+        uint256 maxParticipants5 = 3;
         coinToss.createPool(entryFee5, maxParticipants5);
         console.log("Created Pool with entry fee:", entryFee5, "and max participants:", maxParticipants5);
 
@@ -49,7 +49,7 @@ contract DeployInteractionScript is Script {
         console.log("Created Pool with entry fee:", entryFee6, "and max participants:", maxParticipants6);
 
         uint256 entryFee7 = 0.0011 ether;
-        uint256 maxParticipants7 = 3;
+        uint256 maxParticipants7 = 6;
         coinToss.createPool(entryFee7, maxParticipants7);
         console.log("Created Pool with entry fee:", entryFee7, "and max participants:", maxParticipants7);
         
