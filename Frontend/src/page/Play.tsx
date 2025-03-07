@@ -212,22 +212,77 @@ const PlayGame = () => {
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
+      console.log("RoundCompleted logs received:", logs);
+
       for (const log of logs) {
         try {
-          const poolId = log.topics[1];
-          console.log("Log received:", log);
 
-          const [eventPoolId, roundNumber, winningSelection] = [
-            BigInt(log.topics[1]),
-            BigInt("0"),
-            BigInt("0"),
-          ];
+          console.log("Processing log:", log);
+          console.log("Log topics:", log.topics);
+          console.log("Log args:", log.args);
 
-          if (eventPoolId === BigInt(pool.id)) {
+          // Extract poolId from the first indexed parameter
+          const poolId = BigInt(log.topics[1]);
+
+          // Check how the event data is structured
+          let roundNumber, winningSelection;
+
+          if (log.args) {
+            // Try to access via args if available
+            roundNumber = log.args.roundNumber
+              ? BigInt(log.args.roundNumber)
+              : BigInt(0);
+            winningSelection = log.args.winningSelection
+              ? BigInt(log.args.winningSelection)
+              : BigInt(0);
+
+            console.log(
+              "Using log.args - Round:",
+              roundNumber.toString(),
+              "Winner:",
+              winningSelection.toString()
+            );
+          } else {
+            // Try to access via topics if args is not available
+            // Topics are typically: [eventSignature, ...indexedParams]
+            roundNumber =
+              log.topics.length > 2 ? BigInt(log.topics[2]) : BigInt(0);
+            winningSelection =
+              log.topics.length > 3 ? BigInt(log.topics[3]) : BigInt(0);
+
+            console.log(
+              "Using log.topics - Round:",
+              roundNumber.toString(),
+              "Winner:",
+              winningSelection.toString()
+            );
+          }
+
+          console.log(
+            "Comparing poolId:",
+            poolId.toString(),
+            "with pool.id:",
+            pool.id
+          );
+
+          // Compare with the current pool ID
+          if (poolId === BigInt(pool.id)) {
+            console.log("Pool ID match found!");
+
             stopCoinAnimation();
             refetchPlayerStatus();
 
+            // Check if user survived
             const userSurvived = selectedChoice === Number(winningSelection);
+            console.log(
+              "User selection:",
+              selectedChoice,
+              "Winning selection:",
+              Number(winningSelection)
+            );
+            console.log("User survived?", userSurvived);
+
+
             showNotification(
               userSurvived,
               `Round ${roundNumber} Completed!`,
@@ -241,18 +296,19 @@ const PlayGame = () => {
                 setRound(Number(roundNumber) + 1);
                 setTimer(20);
                 setIsTimerActive(true);
+
+                setHasSubmitted(false); // Allow selection in next round
               } else {
                 navigate("/explore");
               }
             }, 3000);
           }
         } catch (error) {
-          console.error("Error processing event log:", error);
+          console.error("Error processing event log:", error, log);
         }
       }
     },
-  });
-  
+  })
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
@@ -304,7 +360,8 @@ const PlayGame = () => {
         args: [BigInt(pool.id)],
       });
       showNotification(true, "Success!", "Your prize has been claimed!");
-      setShowWinnerPopup(false); // Close pop-up after claiming
+      setShowWinnerPopup(false); 
+      navigate("/explore")
     } catch (err: any) {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
