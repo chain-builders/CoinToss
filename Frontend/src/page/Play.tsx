@@ -1,57 +1,67 @@
 import { useState, useEffect, useRef } from "react";
+import { formatTime } from "../utils/utilFunction";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
+  useWatchContractEvent,
+  useReadContract,
   useAccount,
 } from "wagmi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
-
-import { GamePlayer, PlayerHistoryEntry, GameStats, NotificationProps } from "../utils/Interfaces";
 
 enum PlayerChoice {
   NONE = 0,
   HEADS = 1,
   TAILS = 2,
 }
-
+type PlayerStatus = [boolean, boolean, boolean, boolean];
 const PlayGame = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("explore");
-  const [selectedPool, setSelectedPool] = useState<any>(null);
-  const [showGameView, setShowGameView] = useState(false);
-  const [gameStage, setGameStage] = useState("choice");
-  const [isTimerActive, setIsTimerActive] = useState(true); // Timer starts immediately
-  const [choice, setChoice] = useState<string | null>(null);
+  const location = useLocation();
+  const pool = location.state.pools;
+  const { address } = useAccount();
+
+  const [isTimerActive, setIsTimerActive] = useState(true);
+  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
+    null
+  );
   const [round, setRound] = useState(1);
-  const [timer, setTimer] = useState(10);
-  const [winners, setWinners] = useState<GamePlayer[]>([]);
-  const [playerHistory, setPlayerHistory] = useState<PlayerHistoryEntry[]>([]);
-  const [gameStats, setGameStats] = useState<GameStats>({
-    totalPlayers: 16,
-    remainingPlayers: 16,
-    rounds: 4,
-    roundsCompleted: 0,
-    winningChoice: null,
-  });
+  const [timer, setTimer] = useState(20); // Timer starts immediately
+  const [isEliminated, setIsEliminated] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
   const [coinRotation, setCoinRotation] = useState(0);
-  const [notification, setNotification] = useState<NotificationProps>({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notification, setNotification] = useState({
     isVisible: false,
     isSuccess: false,
     message: "",
     subMessage: "",
   });
-  const [gameOver, setGameOver] = useState(false);
-  const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
-  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
-    null
-  );
-  const [hasAttemptedSelection, setHasAttemptedSelection] = useState(false); // Track if user has attempted selection
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+  const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
+  const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
 
-  const { address } = useAccount();
+  // Fetch player status
+  const {
+    data: playerStatus,
+    refetch: refetchPlayerStatus,
+    isLoading: isStatusLoading,
+  } = useReadContract<PlayerStatus>({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    functionName: "getPlayerStatus",
+    args: [BigInt(pool.id), address],
+  });
+  console.log(playerStatus);
+
+  const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
+  const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
+  const hasClaimed = playerStatus ? playerStatus[3] : false;
+
+  // Send transaction
   const {
     writeContract,
     data: hash,
@@ -59,214 +69,227 @@ const PlayGame = () => {
     error: writeError,
   } = useWriteContract();
 
+  // Wait for transaction confirmation
   const {
     isLoading: isConfirming,
     isSuccess: isConfirmed,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  // -----------------------------------------Handle player choice selection------------------------------------------------------
-  const handleMakeChoice = (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3) return;
+  const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle timer logic
+  useEffect(() => {
+    if (isTimerActive && timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else if (timer === 0 && !isWaitingForOthers) {
+      setIsTimerActive(false);
+
+      if (isWritePending || isConfirming) {
+        showNotification(
+          true,
+          "Processing...",
+          "Your choice has been submitted and is being processed"
+        );
+      } else if (writeError || receiptError) {
+        showNotification(
+          false,
+          "Transaction Failed",
+          "Your transaction failed to process. You have been eliminated"
+        );
+        setTimeout(() => {
+          navigate("/explore");
+        }, 3000);
+      } else if (isConfirmed) {
+        setIsWaitingForOthers(true);
+      }
+    }
+  }, [
+    isTimerActive,
+    timer,
+    isWaitingForOthers,
+    isWritePending,
+    isConfirming,
+    writeError,
+    receiptError,
+    isConfirmed,
+  ]);
+
+  useEffect(() => {
+    if (
+      !pool ||
+      (typeof pool.status === "number" && pool.status !== 2) ||
+      (typeof pool.status === "string" && pool.status !== "ACTIVE") ||
+      hasClaimed
+    ) {
+      navigate("/explore");
+    }
+  }, [pool, hasClaimed, navigate]);
+
+  console.log(pool);
+
+  // Handle player elimination
+  useEffect(() => {
+    if (isEliminatedStatus) {
+      setIsEliminated(true);
+      setIsTimerActive(false);
+      showNotification(
+        false,
+        "Eliminated",
+        "You have been eliminated from the pool."
+      );
+      setTimeout(() => {
+        navigate("/explore");
+      }, 3000);
+    }
+  }, [isEliminatedStatus]);
+  // Handle player winning the game
+  useEffect(() => {
+    if (isWinnerStatus && pool?.status === 2) {
+      setIsWinner(true);
+      setShowWinnerPopup(true); // Show winner pop-up
+    }
+  }, [isWinnerStatus, pool]);
+
+  // Handle player choice submission
+  const handleMakeChoice = async (selected: PlayerChoice) => {
+    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; // Prevent reselection
     setSelectedChoice(selected);
+    setHasSubmitted(true); // Mark as submitted
     startCoinAnimation();
-    handleSubmit(selected);
+    await handleSubmit(selected);
   };
 
-
-
-  // __________________________________________Handle submission to the smart contract___________________________________________________
-  
   const handleSubmit = async (selected: PlayerChoice) => {
-    if (!selected || selected === PlayerChoice.NONE) {
+    if (!selected) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
     }
 
-    const hardcodedPoolId = 0;
-
     try {
       setIsSubmitting(true);
-      const result = await writeContract({
+      await writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
-        args: [BigInt(hardcodedPoolId), selected],
+        args: [BigInt(pool.id), selected],
       });
-
-      console.log("Transaction result:", result);
     } catch (err: any) {
-      console.error("Transaction Error:", err);
-
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
-
       setIsSubmitting(false);
+      stopCoinAnimation(); // Stop animation on failure
     }
   };
-// ____________________________________________________________Debugging____________________________________________________________________
-  useEffect(() => {
-    console.log("Debug Transaction States:", {
-      hash,
-      isConfirming,
-      isConfirmed,
-      writeError,
-      receiptError,
-    });
-  }, [hash, isConfirming, isConfirmed, writeError, receiptError]);
 
-  // -----------------------------------------Handle transaction success or error----------------------------------------
+  // Handle transaction confirmation
   useEffect(() => {
     if (isConfirmed) {
       setIsSubmitting(false);
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
-     
+      setIsWaitingForOthers(true);
     }
 
-    if (writeError) {
-      console.error("Error making selection:", writeError);
-      showNotification(false, "Error!", "Failed to make selection.");
+    if (writeError || receiptError) {
       setIsSubmitting(false);
- 
-    }
-
-    if (receiptError) {
-      showNotification(false, "Error!", "Failed to make selection.");
-      setIsSubmitting(false);
+      showNotification(
+        false,
+        "Transaction Failed",
+        "Your transaction failed to process."
+      );
     }
   }, [isConfirmed, writeError, receiptError]);
 
-  // Format timer display
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  // Handle RoundCompleted event
+  useWatchContractEvent({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    eventName: "RoundCompleted",
+    onLogs: (logs) => {
+      console.log("RoundCompleted logs received:", logs);
 
-  // Generate mock players with random choices
-  const generateMockPlayers = (total: number, userChoice: string | null) => {
-    const players: GamePlayer[] = [];
-    for (let i = 1; i <= total; i++) {
-      const playerChoice = Math.random() > 0.5 ? "heads" : "tails";
-      players.push({
-        id: i,
-        address: `0x${Math.random()
-          .toString(16)
-          .substring(2, 8)}...${Math.random().toString(16).substring(2, 6)}`,
-        choice: i === 1 && userChoice ? userChoice : playerChoice,
-        survived: false,
-      });
-    }
-    return players;
-  };
+      for (const log of logs) {
+        try {
+          console.log("Processing log:", log);
 
-  // ---------------------------------------Handle round completion---------------------------------------------------------------
-  const handleRoundEnd = () => {
-    stopCoinAnimation();
+          // Extract the data based on event structure
+          // The event has three parameters: poolId, round, winningSelection
+          // They might be in args or they might be in topics and data
+          let poolId, roundNumber, winningSelection;
 
-    if (!selectedChoice) {
-      // If no choice was made, eliminate the player
-      setGameStage("results");
-      showNotification(
-        false,
-        "Eliminated!",
-        "You didn't make a choice in time!"
-      );
-      setTimeout(() => {
-        setGameStage("gameOver");
-        setGameOver(true);
-      }, 3000);
-      return;
-    }
+          if (log.args) {
+            // If args is available, use it
+            poolId = BigInt(log.args[0] || log.args.poolId);
+            roundNumber = BigInt(log.args[1] || log.args.round);
+            winningSelection = BigInt(log.args[2] || log.args.winningSelection);
+          } else {
+            // If args is not available, try to extract from topics and data
+            poolId = BigInt(log.topics[1]);
 
-    const totalPlayers = gameStats.remainingPlayers;
-    const players = generateMockPlayers(
-      totalPlayers,
-      selectedChoice === PlayerChoice.HEADS ? "heads" : "tails"
-    );
+            // Data will contain the non-indexed parameters
+            // You might need to adjust this based on how the RoundCompleted event is defined
+            const data = log.data;
+            // Here you would need to decode the data parameter
+            // For now, just log it to see what's available
+            console.log("Event data:", data);
 
-    const headsCount = players.filter((p) => p.choice === "heads").length;
-    const tailsCount = players.filter((p) => p.choice === "tails").length;
+            // Without proper decoding, we can't access these values reliably
+            roundNumber = BigInt(0);
+            winningSelection = BigInt(0);
+          }
 
-    const minorityChoice = headsCount <= tailsCount ? "heads" : "tails";
+          console.log("Extracted values:", {
+            poolId: poolId.toString(),
+            roundNumber: roundNumber.toString(),
+            winningSelection: winningSelection.toString(),
+          });
 
-    const updatedPlayers = players.map((player) => ({
-      ...player,
-      survived: player.choice === minorityChoice,
-    }));
+          if (poolId === BigInt(pool.id)) {
+            console.log("Pool ID matched!");
+            stopCoinAnimation();
+            refetchPlayerStatus();
 
-    const survivors = updatedPlayers.filter((p) => p.survived);
+            const userSurvived = selectedChoice === Number(winningSelection);
+            console.log("User survived?", userSurvived);
 
-    setGameStats((prev) => ({
-      ...prev,
-      remainingPlayers: survivors.length,
-      roundsCompleted: prev.roundsCompleted + 1,
-      winningChoice: minorityChoice,
-    }));
+            showNotification(
+              userSurvived,
+              `Round ${roundNumber} Completed!`,
+              userSurvived
+                ? "You advanced to the next round!"
+                : "You were eliminated!"
+            );
 
-    setPlayerHistory((prev) => [
-      ...prev,
-      {
-        round,
-        players: updatedPlayers,
-        headsCount,
-        tailsCount,
-        minorityChoice,
-        survivors: survivors.length,
-      },
-    ]);
-  
-
-
-
-
-    // -------------------------------- Notification to display when result compile -----------------------------------------------------
-    const userSurvived =
-      (selectedChoice === PlayerChoice.HEADS && minorityChoice === "heads") ||
-      (selectedChoice === PlayerChoice.TAILS && minorityChoice === "tails");
-
-    setGameStage("results");
-
-    // Show notification based on result
-    if (userSurvived) {
-      showNotification(true, "Success!", "You've advanced to the next round!");
-    } else {
-      showNotification(false, "Eliminated!", "Better luck next time!");
-    }
-
-    setTimeout(() => {
-      if (survivors.length <= 1 || round >= gameStats.rounds || !userSurvived) {
-        setWinners(survivors);
-        setGameStage("gameOver");
-        setGameOver(true);
-      } else {
-        setGameStage("roundSummary");
-        setTimeout(() => {
-          setRound(round + 1);
-          setGameStage("choice");
-          setSelectedChoice(null);
-          setTimer(10); // Reset timer for the next round
-          setIsTimerActive(true); // Restart the timer
-        }, 2000);
+            setTimeout(() => {
+              if (userSurvived) {
+                setRound(Number(roundNumber) + 1);
+                setTimer(20);
+                setIsTimerActive(true);
+                setHasSubmitted(false);
+              } else {
+                navigate("/explore");
+              }
+            }, 3000);
+          }
+        } catch (error) {
+          console.error("Error processing event log:", error);
+        }
       }
-    }, 3000);
-  };
+    },
+  });
 
-  // ---------------------------------------Start coin flipping animation------------------------------------------------------
+  // Start/stop coin animation
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
-
-    if (coinFlipInterval.current) clearInterval(coinFlipInterval.current);
-
     coinFlipInterval.current = setInterval(() => {
       setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
   };
 
-  // Stop coin flipping animation
   const stopCoinAnimation = () => {
     if (coinFlipInterval.current) {
       clearInterval(coinFlipInterval.current);
@@ -282,159 +305,41 @@ const PlayGame = () => {
     message: string,
     subMessage: string
   ) => {
-    setNotification({
-      isVisible: true,
-      isSuccess,
-      message,
-      subMessage,
-    });
-
+    setNotification({ isVisible: true, isSuccess, message, subMessage });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, isVisible: false }));
-    }, 4000);
-  };
-
-  // Countdown logic
-  useEffect(() => {
-    if (isTimerActive && timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-
-      // Cleanup interval on unmount or when timer reaches 0
-      return () => clearInterval(interval);
-    } else if (timer === 0) {
-      setIsTimerActive(false); // Stop the timer when it reaches 0
-      handleRoundEnd();
-    }
-  }, [isTimerActive, timer]);
-
-  // Cleanup on component unmount
-  useEffect(() => {
-    return () => {
-      if (coinFlipInterval.current) {
-        clearInterval(coinFlipInterval.current);
+      if (!isSuccess) {
+        navigate("/explore");
       }
-    };
-  }, []);
-
-  // Notification component
-  const RoundNotification = () => {
-    if (!notification.isVisible) return null;
-
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
-        <div
-          className={`p-8 rounded-xl border-4 ${
-            notification.isSuccess
-              ? "border-green-500 bg-green-900"
-              : "border-red-500 bg-red-900"
-          } bg-opacity-90 text-center max-w-md transform scale-in-center`}
-        >
-          <div
-            className={`text-6xl mb-4 ${
-              notification.isSuccess ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {notification.isSuccess ? "🏆" : "❌"}
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {notification.message}
-          </h2>
-          <p
-            className={`text-xl ${
-              notification.isSuccess ? "text-green-300" : "text-red-300"
-            }`}
-          >
-            {notification.subMessage}
-          </p>
-
-          {notification.isSuccess && (
-            <div className="mt-6 text-white">
-              <div className="font-bold">
-                Next round starting in 3 seconds...
-              </div>
-              <div className="w-full bg-gray-800 h-2 mt-2 rounded-full overflow-hidden">
-                <div className="bg-green-500 h-full animate-progress-bar"></div>
-              </div>
-            </div>
-          )}
-
-          {!notification.isSuccess && (
-            <button
-              className="mt-6 px-6 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg font-bold transition-colors"
-              onClick={() =>
-                setNotification((prev) => ({ ...prev, isVisible: false }))
-              }
-            >
-              Close
-            </button>
-          )}
-        </div>
-      </div>
-    );
+    }, 3000);
   };
 
-  // Game Over screen
-  const GameOverScreen = () => {
-    if (!gameOver) return null;
-
-    const userWon = winners.length === 1 && winners[0].id === 1;
-
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
-        <div className="p-8 rounded-xl border-4 border-yellow-500 bg-gray-900 bg-opacity-95 text-center max-w-lg transform scale-in-center">
-          <div className="text-6xl mb-4 text-yellow-500">
-            {userWon ? "🏆" : "🎮"}
-          </div>
-          <h2 className="text-4xl font-bold text-white mb-4">
-            {userWon ? "CONGRATULATIONS!" : "GAME OVER"}
-          </h2>
-          <p className="text-xl text-gray-300 mb-6">
-            {userWon
-              ? `You've won the game with ${gameStats.remainingPlayers} players remaining!`
-              : `You've been eliminated in round ${round} of ${gameStats.rounds}.`}
-          </p>
-
-          <div className="bg-black bg-opacity-50 p-4 rounded-lg text-left mb-6">
-            <h3 className="text-lg font-bold text-yellow-500 mb-2">
-              Game Summary
-            </h3>
-            <p className="text-gray-300">
-              Starting Players: {gameStats.totalPlayers}
-            </p>
-            <p className="text-gray-300">
-              Rounds Completed: {gameStats.roundsCompleted}
-            </p>
-            <p className="text-gray-300">
-              Final Winning Choice: {gameStats.winningChoice}
-            </p>
-          </div>
-
-          <button
-            className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors"
-            onClick={() => {
-              setGameOver(false);
-              setRound(1);
-              setGameStage("choice");
-              setSelectedChoice(null);
-              setGameStats({
-                totalPlayers: 16,
-                remainingPlayers: 16,
-                rounds: 4,
-                roundsCompleted: 0,
-                winningChoice: null,
-              });
-              setPlayerHistory([]);
-              setWinners([]);
-              navigate("/explore");
-            }}
-          >
-            Back to pools
-          </button>
-        </div>
-      </div>
-    );
+  // Handle player winning the game
+  useEffect(() => {
+    if (isWinnerStatus) {
+      setIsWinner(true);
+      setShowWinnerPopup(true); // Show winner pop-up
+    }
+  }, [isWinnerStatus]);
+  // Handle token claim
+  const handleClaimPrize = async () => {
+    try {
+      setIsSubmitting(true);
+      await writeContract({
+        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CoinTossABI.abi,
+        functionName: "claimPrize",
+        args: [BigInt(pool.id)],
+      });
+      showNotification(true, "Success!", "Your prize has been claimed!");
+      setShowWinnerPopup(false);
+      navigate("/explore");
+    } catch (err: any) {
+      const errorMessage = err.message || "Transaction failed";
+      showNotification(false, "Transaction Error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -448,23 +353,21 @@ const PlayGame = () => {
             </div>
             <div>
               <div className="text-gray-400 text-xs">ROUND</div>
-              <div className="text-white font-bold">
-                {round} of {gameStats.rounds}
-              </div>
+              <div className="text-white font-bold text-center">{round}</div>
             </div>
           </div>
 
           <div className="text-center">
             <div className="text-xs text-gray-400">REMAINING PLAYERS</div>
             <div className="text-2xl font-bold text-yellow-500">
-              {gameStats.remainingPlayers}
+              {pool.remainingPlayers}
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-xs text-gray-400">POTENTIAL REWARD</div>
             <div className="text-2xl font-bold text-yellow-500 animate-pulse-slow">
-              +{Math.floor(gameStats.remainingPlayers * 0.8)}{" "}
+              +{Math.floor(pool.remainingPlayers * 0.8)}{" "}
               <span className="text-xs">Points</span>
             </div>
           </div>
@@ -581,7 +484,7 @@ const PlayGame = () => {
                   ? "bg-gradient-to-r from-orange-700 to-orange-500"
                   : "bg-gradient-to-r from-yellow-700 to-yellow-500"
               }`}
-              style={{ width: `${(timer / 10) * 100}%` }}
+              style={{ width: `${(timer / 20) * 100}%` }}
             ></div>
           </div>
 
@@ -594,50 +497,66 @@ const PlayGame = () => {
         </div>
       </div>
 
-      {/* Game Stats - Creates Social Proof */}
-      <div className="w-full max-w-4xl px-4 mt-8">
-        <div className="flex justify-between text-xs text-gray-500 px-2">
-          <div>
-            Last winner:{" "}
-            <span className="text-yellow-500">
-              {playerHistory.length > 0
-                ? `${playerHistory[
-                    playerHistory.length - 1
-                  ].minorityChoice.toUpperCase()} (${
-                    playerHistory[playerHistory.length - 1].minorityChoice ===
-                    "heads"
-                      ? Math.round(
-                          (playerHistory[playerHistory.length - 1].headsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
-                      : Math.round(
-                          (playerHistory[playerHistory.length - 1].tailsCount /
-                            (playerHistory[playerHistory.length - 1]
-                              .headsCount +
-                              playerHistory[playerHistory.length - 1]
-                                .tailsCount)) *
-                            100
-                        )
-                  }% chose)`
-                : "HEADS (38% chose)"}
-            </span>
-          </div>
-          <div>
-            Biggest pot today:{" "}
-            <span className="text-yellow-500">1,468 POINTS</span>
+      {/* Notification for round results */}
+      {notification.isVisible && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+          <div
+            className={`p-8 rounded-xl border-4 ${
+              notification.isSuccess
+                ? "border-green-500 bg-green-900"
+                : "border-red-500 bg-red-900"
+            } bg-opacity-90 text-center max-w-md transform scale-in-center`}
+          >
+            <div
+              className={`text-6xl mb-4 ${
+                notification.isSuccess ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {notification.isSuccess ? "🏆" : "❌"}
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {notification.message}
+            </h2>
+            <p
+              className={`text-xl ${
+                notification.isSuccess ? "text-green-300" : "text-red-300"
+              }`}
+            >
+              {notification.subMessage}
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Notification for round results */}
-      <RoundNotification />
+      {isWaitingForOthers && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+          <div className="text-yellow-500 text-lg font-bold">
+            Waiting for other players to make their selections...
+          </div>
+        </div>
+      )}
 
-      {/* Game Over Screen */}
-      <GameOverScreen />
+      {/* Winner Pop-up */}
+      {showWinnerPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+          <div className="p-8 rounded-xl border-4 border-green-500 bg-green-900 bg-opacity-90 text-center max-w-md transform scale-in-center">
+            <div className="text-6xl mb-4 text-green-400">🏆</div>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              Congratulations!
+            </h2>
+            <p className="text-xl text-green-300">
+              You are the winner of this pool! Claim your prize now.
+            </p>
+            <button
+              onClick={handleClaimPrize}
+              disabled={isSubmitting}
+              className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
+            >
+              {isSubmitting ? "Claiming..." : "Claim Prize"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,9 +6,11 @@ const Root = () => {
    
  
   return (
-    <div>
+    <div className="relative">
       <Header/>
-      <Outlet/>
+     <div className="pt-20">
+     <Outlet/>
+     </div>
     </div>
   )
 }

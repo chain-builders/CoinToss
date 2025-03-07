@@ -71,174 +71,214 @@ export  interface NotificationProps {
 
 
 
-
-
-        
+  import { useState, useEffect, useRef } from "react";
+  import { formatTime } from "../utils/utilFunction";
+  import {
+    useWriteContract,
+    useWaitForTransactionReceipt,
+    useWatchContractEvent,
+    useReadContract,
+    useAccount,
+  } from "wagmi";
+  import { useNavigate, useLocation } from "react-router-dom";
+  import CoinTossABI from "../utils/contract/CoinToss.json";
+  import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
   
-      {/* {featuredPool && (
-        <motion.div
-          className="border border-yellow-900 bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 relative overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-2 py-1">
-            FILLING FAST
-          </div>
-
-          <div className="flex justify-between items-stol.name}art">
-            <div>
-              <h3 className="text-xl font-bold flex items-center text-yellow-400">
-                <Trophy size={18} className="mr-2" /> {featuredPool.name}
-              </h3>
-              <p className="text-gray-400 text-sm">
-                Almost full! Join now before it starts
-              </p>
-            </div>
-            <div
-              className={`text-sm font-medium ${getStatusColor(
-                featuredPool.status
-              )}`}
-            >
-              {featuredPool.status === "filling" ? "Filling" : "Starting Soon"}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-400">Stake</p>
-              <p className="font-medium text-white">{featuredPool.stake}</p>
-            </div>
-            <div>
-              <p className="text-gray-400">Players</p>
-              <p className="font-medium text-white">{featuredPool.players}</p>
-            </div>
-            <div>
-              <p className="text-gray-400">Time Left</p>
-              <p className="font-medium text-white">{featuredPool.timeLeft}</p>
-            </div>
-            <div>
-              <p className="text-gray-400">Previous Winners</p>
-              <p className="font-medium text-white">
-                {featuredPool.previousWinners}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <div className="text-xs text-gray-400 mb-1">Pool filling up</div>
-            <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-yellow-500"
-                style={{ width: `${featuredPool.percentFull}%` }}
-              />
-            </div>
-          </div>
-
-          <button
-            className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg w-full transition-colors"
-            onClick={() => handlePoolSelect(featuredPool)}
-          >
-            Join This Pool
-          </button>
-        </motion.div>
-      )} */}
-
-
-
-
-
-
-        // Live update pools periodically to create urgency
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPools((currentPools) =>
-        currentPools.map((pool) => {
-          const [min, sec] = pool.timeLeft.split(":").map(Number);
-          let newSec = sec - 5;
-          let newMin = min;
-          if (newSec < 0) {
-            newSec = 55;
-            newMin = min - 1;
+  enum PlayerChoice {
+    NONE = 0,
+    HEADS = 1,
+    TAILS = 2,
+  }
+  
+  type PlayerStatus = [boolean, boolean, boolean, boolean]; // [isParticipant, isEliminated, isWinner, hasClaimed]
+  
+  const PlayGame = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const pool = location.state.pools;
+    const { address } = useAccount();
+  
+    const [isTimerActive, setIsTimerActive] = useState(true);
+    const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(null);
+    const [round, setRound] = useState(1);
+    const [timer, setTimer] = useState(20); // Timer starts immediately
+    const [isCoinFlipping, setIsCoinFlipping] = useState(false);
+    const [coinRotation, setCoinRotation] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false); // Prevent reselection
+    const [notification, setNotification] = useState({
+      isVisible: false,
+      isSuccess: false,
+      message: "",
+      subMessage: "",
+    });
+    const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+    const [isEliminated, setIsEliminated] = useState(false); // Track elimination
+    const [isWinner, setIsWinner] = useState(false); // Track if player is a winner
+    const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Show winner pop-up
+    const [hasClaimed, setHasClaimed] = useState(false); // Track if prize has been claimed
+    const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
+    // Fetch player status
+    const {
+      data: playerStatus,
+      refetch: refetchPlayerStatus,
+      isError: isStatusError,
+      isLoading: isStatusLoading,
+    } = useReadContract({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: CoinTossABI.abi,
+      functionName: "getPlayerStatus",
+      args: [BigInt(pool.id), address],
+    });
+  
+    const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
+    const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
+    const hasClaimedStatus = playerStatus ? playerStatus[3] : false; // Check if prize has been claimed
+  
+    // Fetch pool status
+    const {
+      data: poolStatus,
+      isLoading: isPoolStatusLoading,
+    } = useReadContract({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: CoinTossABI.abi,
+      functionName: "getPoolInfo",
+      args: [BigInt(pool.id)],
+    });
+  
+    // Redirect if pool is not active or prize has been claimed
+    useEffect(() => {
+      if (poolStatus && (pool.s !== 2 || hasClaimedStatus)) {
+        navigate("/explore"); // Redirect if pool is not active or prize has been claimed
+      }
+    }, [poolStatus, hasClaimedStatus]);
+  
+    // Handle player elimination
+    useEffect(() => {
+      if (isEliminatedStatus) {
+        setIsEliminated(true);
+        setIsTimerActive(false);
+        showNotification(false, "Eliminated", "You have been eliminated from the pool.");
+        setTimeout(() => {
+          navigate("/explore");
+        }, 3000);
+      }
+    }, [isEliminatedStatus]);
+  
+    // Handle player winning the game
+    useEffect(() => {
+      if (isWinnerStatus && poolStatus?.status === "CLOSED") {
+        setIsWinner(true);
+        setShowWinnerPopup(true); // Show winner pop-up
+      }
+    }, [isWinnerStatus, poolStatus]);
+  
+    // Handle player choice submission
+    const handleMakeChoice = async (selected: PlayerChoice) => {
+      if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; // Prevent reselection
+      setSelectedChoice(selected);
+      setHasSubmitted(true); // Mark as submitted
+      startCoinAnimation();
+      await handleSubmit(selected);
+    };
+  
+    const handleSubmit = async (selected: PlayerChoice) => {
+      if (!selected) {
+        showNotification(false, "Error", "Please select HEADS or TAILS");
+        return;
+      }
+  
+      try {
+        setIsSubmitting(true);
+        await writeContract({
+          address: CORE_CONTRACT_ADDRESS,
+          abi: CoinTossABI.abi,
+          functionName: "makeSelection",
+          args: [BigInt(pool.id), selected],
+        });
+      } catch (err: any) {
+        const errorMessage = err.message || "Transaction failed";
+        showNotification(false, "Transaction Error", errorMessage);
+        setIsSubmitting(false);
+        stopCoinAnimation(); // Stop animation on failure
+      }
+    };
+  
+    // Handle token claim
+    const handleClaimPrize = async () => {
+      try {
+        setIsSubmitting(true);
+        await writeContract({
+          address: CORE_CONTRACT_ADDRESS,
+          abi: CoinTossABI.abi,
+          functionName: "claimPrize",
+          args: [BigInt(pool.id)],
+        });
+        setHasClaimed(true); // Mark prize as claimed
+        showNotification(true, "Success!", "Your prize has been claimed!");
+        setShowWinnerPopup(false); // Close pop-up after claiming
+      } catch (err: any) {
+        const errorMessage = err.message || "Transaction failed";
+        showNotification(false, "Transaction Error", errorMessage);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+  
+    // Handle RoundCompleted event
+    useWatchContractEvent({
+      address: CORE_CONTRACT_ADDRESS,
+      abi: CoinTossABI.abi,
+      eventName: "RoundCompleted",
+      onLogs: (logs) => {
+        for (const log of logs) {
+          try {
+            const poolId = BigInt(log.topics[1]);
+            const roundNumber = BigInt(log.args?.roundNumber);
+            const winningSelection = BigInt(log.args?.winningSelection);
+  
+            if (poolId === BigInt(pool.id)) {
+              const userSurvived = selectedChoice === Number(winningSelection);
+              if (userSurvived) {
+                setRound(Number(roundNumber) + 1); // Move to the next round
+                setTimer(20); // Reset timer
+                setIsTimerActive(true);
+                setHasSubmitted(false); // Allow selection in the next round
+              } else {
+                setIsEliminated(true); // Mark as eliminated
+              }
+            }
+          } catch (error) {
+            console.error("Error processing event log:", error);
           }
-          if (newMin < 0) {
-            newMin = 0;
-            newSec = 0;
-          }
-
-          // Randomly update players sometimes
-          const randomValue = Math.random();
-          let newPlayersCount = pool.playersCount;
-
-          if (randomValue > 0.7 && pool.playersCount < pool.maxPlayers) {
-            newPlayersCount = Math.min(pool.playersCount + 1, pool.maxPlayers);
-            // Add a visual pulse to this pool
-            setShowPulse((prev) => ({ ...prev, [pool.id]: true }));
-            setTimeout(
-              () => setShowPulse((prev) => ({ ...prev, [pool.id]: false })),
-              1000
-            );
-          }
-
-          const percentFull = Math.round(
-            (newPlayersCount / pool.maxPlayers) * 100
-          );
-
-          // Change status to "starting" when nearly full
-          let newStatus = pool.status;
-          if (percentFull > 85 && pool.status !== "starting") {
-            newStatus = "starting";
-            showPoolNotification(`${pool.name} is about to start! Join now!`);
-          }
-
-          return {
-            ...pool,
-            timeLeft: `${String(newMin).padStart(2, "0")}:${String(
-              newSec
-            ).padStart(2, "0")}`,
-            playersCount: newPlayersCount,
-            players: `${newPlayersCount}/${pool.maxPlayers}`,
-            percentFull,
-            status: newStatus,
-          };
-        })
-      );
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Reset almost-full pools occasionally to maintain scarcity pressure
-//   useEffect(() => {
-//     const resetInterval = setInterval(() => {
-//       const poolsToReset = pools.filter(
-//         (p) =>
-//           p.timeLeft === "00:00" ||
-//           (p.status === "starting" && p.percentFull === 100)
-//       );
-
-//       if (poolsToReset.length > 0) {
-//         setPools((currentPools) =>
-//           currentPools.map((pool) => {
-//             if (
-//               pool.timeLeft === "00:00" ||
-//               (pool.status === "starting" && pool.percentFull === 100)
-//             ) {
-              
-//               return {
-//                 ...pool,
-//                 players: "0/16",
-//                 playersCount: 0,
-//                 timeLeft: `${Math.floor(Math.random() * 10) + 2}:00`,
-//                 status: "filling",
-//                 percentFull: 0,
-//               };
-//             }
-//             return pool;
-//           })
-//         );
-//       }
-//     }, 15000);
-
-//     return () => clearInterval(resetInterval);
-//   }, [pools]);
+        }
+      },
+    });
+  
+    // Start/stop coin animation
+    const startCoinAnimation = () => {
+      setIsCoinFlipping(true);
+      coinFlipInterval.current = setInterval(() => {
+        setCoinRotation((prev) => (prev + 36) % 360);
+      }, 100);
+    };
+  
+    const stopCoinAnimation = () => {
+      if (coinFlipInterval.current) {
+        clearInterval(coinFlipInterval.current);
+        coinFlipInterval.current = null;
+      }
+      setIsCoinFlipping(false);
+      setCoinRotation(0);
+    };
+  
+    // Show notification
+    const showNotification = (isSuccess: boolean, message: string, subMessage: string) => {
+      setNotification({ isVisible: true, isSuccess, message, subMessage });
+      setTimeout(() => {
+        setNotification((prev) => ({ ...prev, isVisible: false }));
+        if (!isSuccess) {
+          navigate("/explore");
+        }
+      }, 3000);
+    };

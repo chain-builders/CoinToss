@@ -366,4 +366,70 @@ contract CoinTossTest is Test {
         coinToss.joinPool{value: 0.1 ether}(0);
     }
 
+    function testJoiningPoints() public {
+        vm.prank(owner);
+        coinToss.createPool(0.3 ether, 5);
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.3 ether}(0);
+        
+        uint64 playerPoints = coinToss.getPlayerPoints(jerry);
+        assertEq(playerPoints, 10, "Player should receive 10 points for joining");
+        
+        vm.prank(victory);
+        coinToss.joinPool{value: 0.3 ether}(0);
+        
+        playerPoints = coinToss.getPlayerPoints(victory);
+        assertEq(playerPoints, 10, "Player should receive 10 points for joining");
+    }
+    
+    function testJoiningPointsOnlyOnce() public {
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 3);
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 3);
+        uint256 newPoolId = 1;
+        
+        vm.startPrank(jerry);
+        coinToss.joinPool{value: 0.2 ether}(0);
+        coinToss.joinPool{value: 0.2 ether}(newPoolId);
+        vm.stopPrank();
+        
+        uint64 playerPoints = coinToss.getPlayerPoints(jerry);
+        assertEq(playerPoints, 20, "Player should receive 10 points for each pool joined");
+    }
+
+     function testRoundWinPoints() public {
+        vm.prank(owner);
+        coinToss.createPool(0.2 ether, 3);
+        vm.prank(jerry);
+        coinToss.joinPool{value: 0.2 ether}(0);
+        
+        vm.prank(annie);
+        coinToss.joinPool{value: 0.2 ether}(0);
+        
+        vm.prank(james);
+        coinToss.joinPool{value: 0.2 ether}(0);
+        
+        // Pool is now active
+        
+        vm.prank(jerry);
+        coinToss.makeSelection(0, CoinToss.PlayerChoice.HEADS);
+        
+        vm.prank(annie);
+        coinToss.makeSelection(0, CoinToss.PlayerChoice.HEADS);
+        
+        vm.prank(james);
+        coinToss.makeSelection(0, CoinToss.PlayerChoice.TAILS);
+        
+        uint64 player1Points = coinToss.getPlayerPoints(jerry);
+        uint64 player2Points = coinToss.getPlayerPoints(annie);
+        uint64 player3Points = coinToss.getPlayerPoints(james);
+        
+        assertEq(player1Points, 10, "jerry should only receive 10 points for joining (eliminated in round)");
+        assertEq(player2Points, 10, "annie should only receive 10 points for joining (eliminated in round)");
+        assertEq(player3Points, 135, "james should receive 10 points for joining and 100 points for winning the round and it happens to be the final round");
+    }
+
+      
+
 }

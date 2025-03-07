@@ -2,8 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-priority_fee = 2000000000000
-gas_price = 1000000000000
+gas-price = 1000000000
+priority-gas-price = 1000000000
+
 
 
 solc_version = "0.8.20"  
