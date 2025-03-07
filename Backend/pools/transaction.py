@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import argparse
+import time
 from web3 import Web3, AsyncWeb3
 from dotenv import load_dotenv
 
@@ -94,13 +95,18 @@ class TransactionManager:
                 'topics': [event_signature_hash]
             })
             #logs = self.contract.events.PoolActivated().get_logs(from_block=self.http_w3.eth.block_number)
-            print('Logs:', logs)
+            print('Logs')
             for log in logs:
-                print(log)
                 event = self.contract.events.PoolActivated().process_log(log)
                 #decoded_log = self.contract.events.PoolActivated().process_log(log)
                 #event_args = decoded_log['args']
-                #print('event', event)
+                print('event', event)
+                print('before', time.time())
+                time.sleep(280)
+                print('after', time.time())
+                print('args', event['args'])
+                print('poolId', event['args']['poolId'])
+                self.process_round_results(event['args']['poolId'], 1)
                 #await asyncio.sleep(280)
                 #self.process_round_results(event_args.get('poolId'), 1)
         elif event_name == 'RoundConcluded':
@@ -133,7 +139,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account.address,
             'nonce': self.http_w3.eth.get_transaction_count(account.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
         })
         signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
@@ -151,7 +157,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account.address,
             'nonce': self.http_w3.eth.get_transaction_count(account.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 50000000000000000000
         })
@@ -171,7 +177,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account.address,
             'nonce': self.http_w3.eth.get_transaction_count(account.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -185,7 +191,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account5.address,
             'nonce': self.http_w3.eth.get_transaction_count(account5.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -199,7 +205,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account1.address,
             'nonce': self.http_w3.eth.get_transaction_count(account1.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -213,7 +219,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account2.address,
             'nonce': self.http_w3.eth.get_transaction_count(account2.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -227,7 +233,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account3.address,
             'nonce': self.http_w3.eth.get_transaction_count(account3.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -241,7 +247,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account4.address,
             'nonce': self.http_w3.eth.get_transaction_count(account4.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -255,7 +261,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account6.address,
             'nonce': self.http_w3.eth.get_transaction_count(account6.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 60000000000000000000
         })
@@ -269,7 +275,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account7.address,
             'nonce': self.http_w3.eth.get_transaction_count(account7.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -283,7 +289,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account8.address,
             'nonce': self.http_w3.eth.get_transaction_count(account8.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 6000000000000000000
         })
@@ -297,7 +303,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account9.address,
             'nonce': self.http_w3.eth.get_transaction_count(account9.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
             'value': 60000000000000000000
         })
@@ -305,26 +311,69 @@ class TransactionManager:
         tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         print(f"Transaction sent: {tx_hash.hex()}")
 
-    def make_round_selection(self, _pool_id, _selection):
+    def make_round_selection(self, _pool_id):
         if not self.http_w3:
             self.initialize_web3_connections()
 
-        account = self.http_w3.eth.account.from_key(self.private_key)
-        txn = self.contract.functions.makeRoundSelection(
+        account1 = self.http_w3.eth.account.from_key(self.key1)
+        txn = self.contract.functions.makeSelection(
             _pool_id,
-            _selection
+            1
         ).build_transaction({
-            'from': account.address,
-            'nonce': self.http_w3.eth.get_transaction_count(account.address),
-            'gas': 200000,
+            'from': account1.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account1.address),
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
         })
-        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key1)
         tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         print(f"Transaction sent: {tx_hash.hex()}")
-        return {'tx_hash': tx_hash.hex(), 'status': 'pending'}
+
+        account2 = self.http_w3.eth.account.from_key(self.key2)
+        txn = self.contract.functions.makeSelection(
+            _pool_id,
+            2
+        ).build_transaction({
+            'from': account2.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account2.address),
+            'gas': 2000000,
+            'gasPrice': self.http_w3.eth.gas_price,
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key2)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")
+
+        account3 = self.http_w3.eth.account.from_key(self.key3)
+        txn = self.contract.functions.makeSelection(
+            _pool_id,
+            1
+        ).build_transaction({
+            'from': account2.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account2.address),
+            'gas': 2000000,
+            'gasPrice': self.http_w3.eth.gas_price,
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key2)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")
+
+        account3 = self.http_w3.eth.account.from_key(self.key3)
+        txn = self.contract.functions.makeSelection(
+            _pool_id,
+            1
+        ).build_transaction({
+            'from': account3.address,
+            'nonce': self.http_w3.eth.get_transaction_count(account3.address),
+            'gas': 2000000,
+            'gasPrice': self.http_w3.eth.gas_price,
+        })
+        signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.key3)
+        tx_hash = self.http_w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"Transaction sent: {tx_hash.hex()}")        
+        
     
     def process_round_results(self, pool_id, round):
+        print('processing round results')
         if not self.http_w3:
             self.initialize_web3_connections()
 
@@ -335,7 +384,7 @@ class TransactionManager:
         ).build_transaction({
             'from': account.address,
             'nonce': self.http_w3.eth.get_transaction_count(account.address),
-            'gas': 200000,
+            'gas': 2000000,
             'gasPrice': self.http_w3.eth.gas_price,
         })
         signed_txn = self.http_w3.eth.account.sign_transaction(txn, self.private_key)
