@@ -16,7 +16,7 @@ enum PlayerChoice {
   HEADS = 1,
   TAILS = 2,
 }
-
+type PlayerStatus = [boolean, boolean, boolean, boolean];
 const PlayGame = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,13 +44,13 @@ const PlayGame = () => {
     refetch: refetchPlayerStatus,
     isError: isStatusError,
     isLoading: isStatusLoading,
-  } = useReadContract({
+  } = useReadContract<PlayerStatus>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
-
+  console.log(playerStatus)
   // Send transaction
   const {
     writeContract,
@@ -67,8 +67,6 @@ const PlayGame = () => {
   } = useWaitForTransactionReceipt({ hash });
 
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
-console.log(playerStatus[1])
-console.log(hash)
 
   // Handle timer logic
   useEffect(() => {
@@ -95,18 +93,18 @@ console.log(hash)
 
   // Handle player elimination
   useEffect(() => {
-    if (playerStatus[1]) {
+    if (playerStatus && playerStatus?.isEliminated) {
       setIsTimerActive(false);
       showNotification(false, "Eliminated", "You have been eliminated from the pool.");
       setTimeout(() => {
         navigate("/explore");
       }, 3000);
     }
-  }, [playerStatus[1]]);
+  }, [playerStatus?.isEliminated]);
 
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || playerStatus[1]) return;
+    if (!isTimerActive || timer <= 3 || playerStatus?.isEliminated) return;
     setSelectedChoice(selected);
     startCoinAnimation();
     await handleSubmit(selected);
@@ -120,7 +118,7 @@ console.log(hash)
 
     try {
       setIsSubmitting(true);
-      writeContract({
+      await writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
@@ -130,6 +128,7 @@ console.log(hash)
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
       setIsSubmitting(false);
+      stopCoinAnimation(); // Stop animation on failure
     }
   };
 
@@ -221,7 +220,7 @@ console.log(hash)
         navigate("/explore");
       }
     }, 3000);
-  }; 
+  };
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
