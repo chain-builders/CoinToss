@@ -61,13 +61,11 @@ const PoolsInterface: React.FC = () => {
         console.log("Received logs:", logs);
         if (!log.args) return;
 
-        console.log("The pool id is this", log[0].args.poolId);
-
         const poolId =
           typeof log.args.poolId === "bigint" ? log.args.poolId : undefined;
         const player =
-          typeof log.args.player === "string"
-            ? (log.args.player as `0x${string}`)
+          typeof log.args.playerThatJoined === "string"
+            ? (log.args.playerThatJoined as `0x${string}`)
             : undefined;
 
         if (!poolId || !player) {
@@ -85,6 +83,13 @@ const PoolsInterface: React.FC = () => {
           `New player ${player.substring(0, 6)}...${player.substring(
             38
           )} joined pool #${Number(poolId)}`
+        );
+
+        console.log(
+          `Toaster has toasted....New player ${player.substring(
+            0,
+            6
+          )}...${player.substring(38)} joined pool #${Number(poolId)}`
         );
 
         // Show pulse animation on the pool card
