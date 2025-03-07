@@ -43,7 +43,6 @@ const PlayGame = () => {
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
   const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
   const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
-  const [hasClaimed, setHasClaimed] = useState(false);
 
   // Fetch player status
   const {
@@ -60,7 +59,7 @@ const PlayGame = () => {
 
   const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
   const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
-  const hasClaimedStatus = playerStatus ? playerStatus[3] : false;
+  const hasClaimed = playerStatus ? playerStatus[3] : false;
 
   // Send transaction
   const {
@@ -120,7 +119,6 @@ const PlayGame = () => {
   ]);
 
   useEffect(() => {
-    // Only redirect if pool doesn't exist, is not active, or prize has been claimed
     if (
       !pool ||
       (typeof pool.status === "number" && pool.status !== 2) ||
@@ -130,6 +128,7 @@ const PlayGame = () => {
       navigate("/explore");
     }
   }, [pool, hasClaimed, navigate]);
+
   console.log(pool);
 
   // Handle player elimination
@@ -282,34 +281,6 @@ const PlayGame = () => {
       }
     },
   });
-  // useWatchContractEvent({
-  //   address: CORE_CONTRACT_ADDRESS,
-  //   abi: CoinTossABI.abi,
-  //   eventName: "RoundCompleted",
-  //   onLogs: (logs) => {
-  //     for (const log of logs) {
-  //       try {
-  //         const poolId = BigInt(log.topics[1]);
-  //         const roundNumber = BigInt(log.args?.roundNumber);
-  //         const winningSelection = BigInt(log.args?.winningSelection);
-
-  //         if (poolId === BigInt(pool.id)) {
-  //           const userSurvived = selectedChoice === Number(winningSelection);
-  //           if (userSurvived) {
-  //             setRound(Number(roundNumber) + 1); // Move to the next round
-  //             setTimer(20); // Reset timer
-  //             setIsTimerActive(true);
-  //             setHasSubmitted(false); // Allow selection in the next round
-  //           } else {
-  //             setIsEliminated(true); // Mark as eliminated
-  //           }
-  //         }
-  //       } catch (error) {
-  //         console.error("Error processing event log:", error);
-  //       }
-  //     }
-  //   },
-  // });
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
@@ -361,7 +332,8 @@ const PlayGame = () => {
         args: [BigInt(pool.id)],
       });
       showNotification(true, "Success!", "Your prize has been claimed!");
-      setShowWinnerPopup(false); // Close pop-up after claiming
+      setShowWinnerPopup(false);
+      navigate("/explore");
     } catch (err: any) {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
