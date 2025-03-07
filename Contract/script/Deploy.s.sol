@@ -53,6 +53,41 @@ contract CoinTossScript is Script {
         uint256 maxParticipants7 = 5;
         coinToss.createPool(entryFee7, maxParticipants7);
         console.log("Created Pool 6 with entry fee:", entryFee4, "and max participants:", maxParticipants7);
+
+        uint256 entryFee8 = 0.03 ether;
+        uint256 maxParticipants8 = 3;
+        coinToss.createPool(entryFee8, maxParticipants8);
+        console.log("Created Pool 7 with entry fee:", entryFee8, "and max participants:", maxParticipants8);
+
+        uint256 entryFee9 = 0.01 ether;
+        uint256 maxParticipants9 = 5;
+        coinToss.createPool(entryFee9, maxParticipants9);
+        console.log("Created Pool 8 with entry fee:", entryFee9, "and max participants:", maxParticipants9);
+
+        uint256 entryFee10 = 0.01 ether;
+        uint256 maxParticipants10 = 3;
+        coinToss.createPool(entryFee10, maxParticipants10);
+        console.log("Created Pool 9 with entry fee:", entryFee10, "and max participants:", maxParticipants10);
+
+        uint256 entryFee11 = 0.022 ether;
+        uint256 maxParticipants11 = 5;
+        coinToss.createPool(entryFee11, maxParticipants11);
+        console.log("Created Pool 10 with entry fee:", entryFee11, "and max participants:", maxParticipants11);
+
+        uint256 entryFee12 = 0.03 ether;
+        uint256 maxParticipants12 = 5;
+        coinToss.createPool(entryFee12, maxParticipants12);
+        console.log("Created Pool 11 with entry fee:", entryFee12, "and max participants:", maxParticipants12);
+
+        uint256 entryFee13 = 0.01 ether;
+        uint256 maxParticipants13 = 6;
+        coinToss.createPool(entryFee13, maxParticipants13);
+        console.log("Created Pool 12 with entry fee:", entryFee13, "and max participants:", maxParticipants13);
+
+        uint256 entryFee14 = 0.02 ether;
+        uint256 maxParticipants14 = 5;
+        coinToss.createPool(entryFee14, maxParticipants14);
+        console.log("Created Pool 13 with entry fee:", entryFee14, "and max participants:", maxParticipants14);
        
         vm.stopBroadcast();
     }

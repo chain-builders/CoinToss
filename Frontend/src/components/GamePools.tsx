@@ -8,6 +8,7 @@ import {
   useWatchContractEvent,
   useReadContract,
 } from "wagmi";
+import { isAddress } from "viem";
 import { Trophy, Users, Coins } from "lucide-react";
 import { motion } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
@@ -33,6 +34,7 @@ const PoolsInterface: React.FC = () => {
   const [joining, setJoining] = useState(false);
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
   const [participants, setParticipants] = useState<`0x${string}`[]>([]);
+  const [prizeAmountClaimed, setPrizeAmoutClaimed] = useState<number>(0);
 
   const {
     writeContract,
@@ -87,13 +89,14 @@ const PoolsInterface: React.FC = () => {
             <div>
               <h3 className="font-bold text-white">New Challenger!</h3>
               <p className="text-green-100">
-                {`${player.substring(0, 6)}...${player.substring(38)}`} joined pool #{Number(poolId)}
+                {`${player.substring(0, 6)}...${player.substring(38)}`} joined
+                pool #{Number(poolId)}
               </p>
             </div>
           </div>,
-          { 
+          {
             duration: 4000,
-            position: 'top-right'
+            position: "top-right",
           }
         );
 
@@ -125,6 +128,89 @@ const PoolsInterface: React.FC = () => {
     },
   });
 
+  useWatchContractEvent({
+    address: contractAddress,
+    abi: ABI.abi,
+    eventName: "PointsAwarded",
+    onLogs: (logs) => {
+      console.log("Raw PointsAwarded logs:", logs);
+
+      logs.forEach((log) => {
+        // Ensure log.args is valid
+        if (!log.args || typeof log.args !== "object") {
+          console.error("Invalid log.args:", log.args);
+          return;
+        }
+
+        console.log("PointsAwarded args:", log.args);
+
+        // Extract and validate player address
+        const player =
+          typeof log.args.player === "string" ? log.args.player : undefined;
+        if (!player || !isAddress(player)) {
+          console.error("Invalid player address:", player);
+          return;
+        }
+
+        // Extract and validate points
+        const points =
+          log.args.points !== undefined ? BigInt(log.args.points) : undefined;
+        if (points === undefined || points < 0n) {
+          console.error("Invalid points value:", points);
+          return;
+        }
+
+        // Extract and validate actionType
+        const actionType =
+          log.args.reason !== undefined ? Number(log.args.reason) : undefined;
+        if (actionType === undefined || ![1, 2, 3].includes(actionType)) {
+          console.error("Invalid actionType:", actionType);
+          return;
+        }
+
+        // Map actionType to text and icon
+        const actionDetails = {
+          1: { text: "Joining Pool", icon: "🎮" },
+          2: { text: "Round Win", icon: "🎯" },
+          3: { text: "Final Win", icon: "🏆" },
+        };
+
+        const { text: actionText, icon } = actionDetails[actionType] || {
+          text: "Unknown Action",
+          icon: "🎮",
+        };
+
+        console.log("Points awarded:", {
+          player,
+          points: points.toString(),
+          actionType,
+          actionText,
+        });
+
+        // Display toast notification
+        toast.custom(
+          <div className="flex items-center bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-lg shadow-lg">
+            <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+              <span className="text-xl">{icon}</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white">Points Earned!</h3>
+              <p className="text-blue-100">
+                {`${player.substring(0, 6)}...${player.substring(
+                  player.length - 4
+                )}`}{" "}
+                earned {points.toString()} points for {actionText}
+              </p>
+            </div>
+          </div>,
+          {
+            duration: 4000,
+            position: "top-right",
+          }
+        );
+      });
+    },
+  });
   // all pools
   const { data: allPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
@@ -193,23 +279,24 @@ const PoolsInterface: React.FC = () => {
 
   const handleJoinPool = async (poolId: number, entryFee: BigInt) => {
     const readableAmount = formatEther(entryFee.toString());
-  
+
     toast.success(
       <div className="flex flex-col">
         <span className="text-lg font-bold">🎮 Game On!</span>
-        <span>You are about  to Enter Pool #{poolId} with {readableAmount} ETH</span>
+        <span>
+          You are about to Enter Pool #{poolId} with {readableAmount} Core
+        </span>
         <span className="text-sm mt-1">Get ready to flip!</span>
       </div>,
       {
         duration: 5000,
-        icon: '🎲',
+        icon: "🎲",
         style: {
-          background: 'linear-gradient(to right, #4F46E5, #7C3AED)',
-          color: 'white',
+          background: "linear-gradient(to right, #4F46E5, #7C3AED)",
+          color: "white",
         },
       }
     );
-    
 
     setIsStaking(true);
     try {
@@ -274,7 +361,7 @@ const PoolsInterface: React.FC = () => {
     }
   };
 
-  const getProgressPercentage = (pools:PoolInterface) => {
+  const getProgressPercentage = (pools: PoolInterface) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
     );
