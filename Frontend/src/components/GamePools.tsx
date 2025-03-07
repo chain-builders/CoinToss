@@ -10,13 +10,12 @@ import {
 import { Trophy, Users, Coins } from "lucide-react";
 import { motion } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
-
+import { useNavigate } from "react-router-dom";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
 import { MyContext } from "../context/contextApi";
 import SelectedPoolDetails from "./SelectedPoolDetails";
-import {setPool}
 import toast from "react-hot-toast";
 // import AboutToFull from "./AboutToFull";
 
