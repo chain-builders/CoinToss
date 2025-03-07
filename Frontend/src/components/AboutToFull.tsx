@@ -1,6 +1,7 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PoolInterface } from "../utils/Interfaces";
 import { Trophy} from "lucide-react";
+import { setPoolNames } from "../utils/utilFunction";
 
 const AboutToFull = (featuredPool:PoolInterface[]) => {
 
@@ -31,7 +32,7 @@ const AboutToFull = (featuredPool:PoolInterface[]) => {
           <div className="flex justify-between items-stol.name}art">
             <div>
               <h3 className="text-xl font-bold flex items-center text-yellow-400">
-                <Trophy size={18} className="mr-2" /> {featuredPool.name}
+                <Trophy size={18} className="mr-2" /> {setPoolNames(featuredPool.id)}
               </h3>
               <p className="text-gray-400 text-sm">
                 Almost full! Join now before it starts
@@ -39,7 +40,7 @@ const AboutToFull = (featuredPool:PoolInterface[]) => {
             </div>
             <div
               className={`text-sm font-medium ${getStatusColor(
-                featuredPool.status
+                featuredPool
               )}`}
             >
               {featuredPool.status === "filling" ? "Filling" : "Starting Soon"}

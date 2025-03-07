@@ -1,17 +1,16 @@
-import  { useState } from 'react';
-
+import { useState } from "react";
 
 const RenderGameView = () =>{
-    const [choice, setChoice] = useState(null);
+    const [choice, setChoice] = useState<string | null>(null);
     const [round, setRound] = useState(1);
-    const [showGameView, setShowGameView] = useState(false);
+    const [showGameView, setShowGameView] = useState<boolean>(false);
 
 
    
 
 
 
-  const handleMakeChoice = (selected) => {
+  const handleMakeChoice = (selected:string) => {
         setChoice(selected);
         setTimeout(() => {
          
@@ -19,12 +18,6 @@ const RenderGameView = () =>{
           setRound(prev => prev + 1);
         }, 2000);
     };
-
-
-
-      
-
-
      return (
         <div className="mt-4">
           <div className="text-center mb-8">

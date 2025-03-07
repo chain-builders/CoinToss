@@ -182,6 +182,5 @@ For any issues or contributions, please create a pull request or open an issue i
 4. Push to the branch (`git push origin feature-name`).
 5. Open a pull request.
 
----
-For any questions, feel free to reach out to the development team. 
+
 

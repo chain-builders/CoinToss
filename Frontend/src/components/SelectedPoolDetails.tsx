@@ -1,5 +1,5 @@
 import {motion,  AnimatePresence } from "framer-motion";
-import {useAccount,useBalance,useWriteContract, useWaitForTransactionReceipt,useReadContract,} from "wagmi";
+import {useAccount,useBalance} from "wagmi";
 import {formatFigures} from "../utils/convertion"
 
 import {PoolInterface} from '../utils/Interfaces'
@@ -51,7 +51,7 @@ const SelectedPoolDetails = ({isModalOpen,selectedPool,closeModal, isStaking, ha
             <div>
               <p className="text-gray-400">Required Stake</p>
               <p className="text-xl font-bold">
-                {formatFigures(selectedPool.entryFee)}
+                {formatFigures(selectedPool.entryFee.toString())}
               </p>
             </div>
             <div>
@@ -104,7 +104,7 @@ const SelectedPoolDetails = ({isModalOpen,selectedPool,closeModal, isStaking, ha
                 Processing...
               </span>
             ) : (
-              `Stake ${ formatFigures(selectedPool.entryFee)} & Enter Pool`
+              `Stake ${ formatFigures(selectedPool.entryFee.toString())} & Enter Pool`
             )}
           </button>
         </motion.div>

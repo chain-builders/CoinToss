@@ -2,12 +2,10 @@ import { motion } from "framer-motion";
 import { Trophy, Users, Coins, PlayCircle } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
-
 import { useState, useEffect } from "react";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import ABI from "../utils/contract/CoinToss.json";
 import { PoolInterface } from "../utils/Interfaces";
-
 import { formatFigures } from "../utils/convertion";
 import { useAccount, useWatchContractEvent, useReadContract } from "wagmi";
 import { setPoolNames } from "../utils/utilFunction";
@@ -63,7 +61,7 @@ const RenderMyPoolsTab = () => {
     navigate("/playgame", { state: { pools } });
   };
   
-  const getProgressPercentage = (pools) => {
+  const getProgressPercentage = (pools:PoolInterface) => {
     return Math.round(
       (pools.currentParticipants / pools.maxParticipants) * 100
     );
@@ -122,7 +120,7 @@ const RenderMyPoolsTab = () => {
               <div>
                 <p className="text-gray-400 text-xs">Stake</p>
                 <p className="font-medium text-white">
-                  {formatFigures(pools.entryFee)}
+                  {formatFigures(pools.entryFee.toString())}
                 </p>
               </div>
             </div>
@@ -142,7 +140,7 @@ const RenderMyPoolsTab = () => {
               <div>
                 <p className="text-gray-400 text-xs">Pool Prize</p>
                 <p className="font-medium text-white">
-                  {formatFigures(pools.prizePool)}
+                  {formatFigures(pools.prizePool.toString())}
                 </p>
               </div>
             </div>

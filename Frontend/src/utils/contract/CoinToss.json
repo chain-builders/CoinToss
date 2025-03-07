@@ -459,18 +459,31 @@
     },
     {
       "type": "event",
+      "name": "PoolActivated",
+      "inputs": [
+        {
+          "name": "poolId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
       "name": "PoolCompleted",
       "inputs": [
         {
           "name": "poolId",
           "type": "uint256",
-          "indexed": false,
+          "indexed": true,
           "internalType": "uint256"
         },
         {
           "name": "prizePool",
           "type": "uint256",
-          "indexed": false,
+          "indexed": true,
           "internalType": "uint256"
         }
       ],
@@ -533,19 +546,19 @@
         {
           "name": "poolId",
           "type": "uint256",
-          "indexed": false,
+          "indexed": true,
           "internalType": "uint256"
         },
         {
           "name": "round",
           "type": "uint256",
-          "indexed": false,
+          "indexed": true,
           "internalType": "uint256"
         },
         {
           "name": "winningSelection",
           "type": "uint8",
-          "indexed": false,
+          "indexed": true,
           "internalType": "enum CoinToss.PlayerChoice"
         }
       ],
