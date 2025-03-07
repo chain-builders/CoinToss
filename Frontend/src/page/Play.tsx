@@ -207,72 +207,44 @@ const PlayGame = () => {
   }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
-  // useWatchContractEvent({
-  //   address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-  //   abi: CoinTossABI.abi,
-  //   eventName: "RoundCompleted",
-  //   onLogs: (logs) => {
-  //     for (const log of logs) {
-  //       try {
-  //         const poolId = log.topics[1];
-  //         console.log("Log received:", log);
-
-  //         const [eventPoolId, roundNumber, winningSelection] = [
-  //           BigInt(log.topics[1]),
-  //           BigInt("0"),
-  //           BigInt("0"),
-  //         ];
-
-  //         if (eventPoolId === BigInt(pool.id)) {
-  //           stopCoinAnimation();
-  //           refetchPlayerStatus();
-
-  //           const userSurvived = selectedChoice === Number(winningSelection);
-  //           showNotification(
-  //             userSurvived,
-  //             `Round ${roundNumber} Completed!`,
-  //             userSurvived
-  //               ? "You advanced to the next round!"
-  //               : "You were eliminated!"
-  //           );
-
-  //           setTimeout(() => {
-  //             if (userSurvived) {
-  //               setRound(Number(roundNumber) + 1);
-  //               setTimer(20);
-  //               setIsTimerActive(true);
-  //             } else {
-  //               navigate("/explore");
-  //             }
-  //           }, 3000);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error processing event log:", error);
-  //       }
-  //     }
-  //   },
-  // });
   useWatchContractEvent({
-    address: CORE_CONTRACT_ADDRESS,
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       for (const log of logs) {
         try {
-          const poolId = BigInt(log.topics[1]);
-          const roundNumber = BigInt(log.args?.roundNumber);
-          const winningSelection = BigInt(log.args?.winningSelection);
+          const poolId = log.topics[1];
+          console.log("Log received:", log);
 
-          if (poolId === BigInt(pool.id)) {
+          const [eventPoolId, roundNumber, winningSelection] = [
+            BigInt(log.topics[1]),
+            BigInt("0"),
+            BigInt("0"),
+          ];
+
+          if (eventPoolId === BigInt(pool.id)) {
+            stopCoinAnimation();
+            refetchPlayerStatus();
+
             const userSurvived = selectedChoice === Number(winningSelection);
-            if (userSurvived) {
-              setRound(Number(roundNumber) + 1); // Move to the next round
-              setTimer(20); // Reset timer
-              setIsTimerActive(true);
-              setHasSubmitted(false); // Allow selection in the next round
-            } else {
-              setIsEliminated(true); // Mark as eliminated
-            }
+            showNotification(
+              userSurvived,
+              `Round ${roundNumber} Completed!`,
+              userSurvived
+                ? "You advanced to the next round!"
+                : "You were eliminated!"
+            );
+
+            setTimeout(() => {
+              if (userSurvived) {
+                setRound(Number(roundNumber) + 1);
+                setTimer(20);
+                setIsTimerActive(true);
+              } else {
+                navigate("/explore");
+              }
+            }, 3000);
           }
         } catch (error) {
           console.error("Error processing event log:", error);
@@ -280,6 +252,7 @@ const PlayGame = () => {
       }
     },
   });
+  
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
