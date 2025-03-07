@@ -41,6 +41,7 @@ const PlayGame = () => {
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
   const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
   const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
+  const [hasClaimed, setHasClaimed] = useState(false);
 
   // Fetch player status
   const {
@@ -115,6 +116,13 @@ const PlayGame = () => {
     isConfirmed,
   ]);
 
+  useEffect(() => {
+    if (pool && (pool.status !== 2 || hasClaimed)) {
+      navigate("/explore"); // Redirect if pool is not active or prize has been claimed
+    }
+  }, [pool, hasClaimed]);
+
+  console.log(pool)
   // Handle player elimination
   useEffect(() => {
     if (playerStatus && playerStatus?.[1]) {
