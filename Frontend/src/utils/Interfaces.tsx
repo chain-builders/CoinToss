@@ -7,6 +7,7 @@ export  interface PoolInterface {
   currentParticipants: number;
   prizePool: number;
   poolStatus: number;
+  currentRound?:number
 }
 
 
