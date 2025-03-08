@@ -1,9 +1,10 @@
 import { Coins } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useEffect, useRef } from "react";
-import { useAccount, useWatchContractEvent, useReadContract } from "wagmi";
+import { useContext, useEffect, useRef } from "react";
+import { useAccount, useReadContract } from "wagmi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+import { MyContext } from "../context/contextApi";
 import ABI from "../utils/contract/CoinToss.json";
 
 const Header = () => {
@@ -27,8 +28,9 @@ const Header = () => {
       }
     }
   }, [isConnected, location.pathname, navigate]);
-
-
+  
+  // const {_points}=useContext(MyContext)
+ 
 
   const {
     data: userPoints,

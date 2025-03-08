@@ -9,6 +9,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { isAddress } from "viem";
+import { MyContext } from "../context/contextApi";
 import { Trophy, Users, Coins } from "lucide-react";
 import { motion } from "framer-motion";
 import ABI from "../utils/contract/CoinToss.json";
@@ -16,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import { formatFigures } from "../utils/convertion";
 import { PoolInterface } from "../utils/Interfaces";
-import { MyContext } from "../context/contextApi";
+
 import SelectedPoolDetails from "./SelectedPoolDetails";
 import toast from "react-hot-toast";
 import { setPoolNames } from "../utils/utilFunction";
@@ -35,6 +36,8 @@ const PoolsInterface: React.FC = () => {
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
   const [participants, setParticipants] = useState<`0x${string}`[]>([]);
   const [prizeAmountClaimed, setPrizeAmoutClaimed] = useState<number>(0);
+
+  const {setPoints}=useContext(MyContext)
 
   const {
     writeContract,
@@ -133,22 +136,15 @@ const PoolsInterface: React.FC = () => {
     abi: ABI.abi,
     eventName: "PointsAwarded",
     onLogs: (logs) => {
-      console.log("Raw PointsAwarded logs:", logs);
 
       logs.forEach((log) => {
-        // Ensure log.args is valid
         if (!log.args || typeof log.args !== "object") {
-          console.error("Invalid log.args:", log.args);
           return;
         }
-
-        console.log("PointsAwarded args:", log.args);
-
         // Extract and validate player address
         const player =
           typeof log.args.player === "string" ? log.args.player : undefined;
         if (!player || !isAddress(player)) {
-          console.error("Invalid player address:", player);
           return;
         }
 
@@ -156,18 +152,14 @@ const PoolsInterface: React.FC = () => {
         const points =
           log.args.points !== undefined ? BigInt(log.args.points) : undefined;
         if (points === undefined || points < 0n) {
-          console.error("Invalid points value:", points);
           return;
         }
-
-        // Extract and validate actionType
+        setPoints(Number(points))
         const actionType =
           log.args.reason !== undefined ? Number(log.args.reason) : undefined;
         if (actionType === undefined || ![1, 2, 3].includes(actionType)) {
-          console.error("Invalid actionType:", actionType);
           return;
         }
-
         // Map actionType to text and icon
         const actionDetails = {
           1: { text: "Joining Pool", icon: "🎮" },
@@ -179,13 +171,6 @@ const PoolsInterface: React.FC = () => {
           text: "Unknown Action",
           icon: "🎮",
         };
-
-        console.log("Points awarded:", {
-          player,
-          points: points.toString(),
-          actionType,
-          actionText,
-        });
 
         // Display toast notification
         toast.custom(
@@ -237,14 +222,14 @@ const PoolsInterface: React.FC = () => {
     }
   }, [allPools]);
 
-  // join pool function
+  
   const {
     isLoading: isConfirming,
     isSuccess: isConfirmed,
     error: txError,
   } = useWaitForTransactionReceipt({ hash });
 
-  // Read contract to check user's joined pools
+  
   const { data: userJoinedPoolIds } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
@@ -254,7 +239,6 @@ const PoolsInterface: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log("Joined Pool IDs:", userJoinedPoolIds);
     if (userJoinedPoolIds && Array.isArray(userJoinedPoolIds)) {
       const poolIds = userJoinedPoolIds.map((pool: any) =>
         typeof pool === "object" && pool !== null
@@ -318,24 +302,20 @@ const PoolsInterface: React.FC = () => {
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
-    // Make sure stake amount is properly set or defaulted
     const stakeText = pool.stake?.replace("$", "") || "0";
     setStakeAmount(parseInt(stakeText, 10) || 0);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedPool(null); // Clear selected pool
+    setSelectedPool(null); 
     setIsStaking(false);
   };
-
-  // Function to handle staking and entering a pool
   const handleStake = async () => {
     if (!selectedPool) return;
 
     try {
       await handleJoinPool(selectedPool.id, selectedPool.entryFee);
-      // No need to await tx.wait() here as we're using useWaitForTransactionReceipt hook
       setUserBalance((prevBalance) => prevBalance - stakeAmount);
     } catch (error) {
       console.error("Transaction failed:", error);
@@ -366,6 +346,10 @@ const PoolsInterface: React.FC = () => {
       (pools.currentParticipants / pools.maxParticipants) * 100
     );
   };
+ 
+
+  const avalablePools= newPools.filter((pool) => pool.poolStatus === 0 && !joinedPools.includes(pool.id))
+  
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -378,7 +362,7 @@ const PoolsInterface: React.FC = () => {
         </div>
         <div className="flex space-x-4 text-sm">
           <div className="text-gray-400">
-            Games Today: <span className="text-white">12</span>
+            Games Today: <span className="text-white">{avalablePools.length}</span>
           </div>
           <div className="text-gray-400">
             Winners Today: <span className="text-yellow-400">158</span>
@@ -424,11 +408,7 @@ const PoolsInterface: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {newPools
-            .filter(
-              (pool) => pool.poolStatus === 0 && !joinedPools.includes(pool.id)
-            )
-            .map((pool) => (
+          {avalablePools.map((pool) => (
               <motion.div
                 key={pool.id}
                 className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
