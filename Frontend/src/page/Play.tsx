@@ -40,12 +40,18 @@ const PlayGame = () => {
     message: "",
     subMessage: "",
   });
+
+  const [lastCompletedRound, setLastCompletedRound] = useState(0);
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
-  const [_isWinner, setIsWinner] = useState(false);
-  const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+
   type PlayerStatus = [boolean, boolean, boolean, boolean];
 
   // Fetch player status
+
+
+  const [isWinner, setIsWinner] = useState(false);
+  const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+
 
   const {
     data: playerStatus,
@@ -135,20 +141,52 @@ const PlayGame = () => {
 
   // Handle player elimination
   useEffect(() => {
-    if (isEliminatedStatus) {
-      setIsEliminated(true);
-      setIsTimerActive(false);
-      showNotification(
-        false,
-        "Eliminated",
-        "You have been eliminated from the pool."
-      );
-      setTimeout(() => {
-        navigate("/explore");
-      }, 3000);
-    }
-  }, [isEliminatedStatus]);
+    if (playerStatus) {
+      // Access elements safely without destructuring
+      const isParticipant = playerStatus[0];
+      const isPlayerEliminated = playerStatus[1];
+      const isPlayerWinner = playerStatus[2];
+      const hasPlayerClaimed = playerStatus[3];
 
+      console.log("Player status updated:", {
+        isParticipant,
+        isPlayerEliminated,
+        isPlayerWinner,
+        hasPlayerClaimed,
+      });
+
+      // Update elimination status
+      if (isPlayerEliminated && !isEliminated) {
+        setIsEliminated(true);
+        setIsTimerActive(false);
+        showNotification(
+          false,
+          "Eliminated",
+          "You have been eliminated from the pool."
+        );
+        setTimeout(() => {
+          navigate("/explore");
+        }, 3000);
+      }
+
+      // Update winner status
+      if (isPlayerWinner && !isWinner) {
+        setIsWinner(true);
+        setShowWinnerPopup(true);
+      }
+
+      // Handle claimed status
+      if (hasPlayerClaimed && isPlayerWinner) {
+        navigate("/explore");
+      }
+
+      // Handle pool status changes
+      if (pool?.status === 2 && isPlayerWinner && !showWinnerPopup) {
+        setShowWinnerPopup(true);
+      }
+    }
+
+  }, [playerStatus, isEliminated, isWinner, showWinnerPopup, pool, navigate]);
 
   // Handle player winning the game
   useEffect(() => {
@@ -158,6 +196,19 @@ const PlayGame = () => {
     }
   }, [isWinnerStatus, pool]);
 
+  // Add a polling mechanism to ensure we get updates even if events fail
+  useEffect(() => {
+    if (isWaitingForOthers) {
+      const interval = setInterval(() => {
+        console.log("Polling for player status updates...");
+        refetchPlayerStatus();
+      }, 5000); // Poll every 5 seconds while waiting
+
+      return () => clearInterval(interval);
+    }
+  }, [isWaitingForOthers, refetchPlayerStatus]);
+
+  
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
     if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; 
@@ -212,42 +263,93 @@ const PlayGame = () => {
 
   // Handle RoundCompleted event
 
+
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       console.log("RoundCompleted logs received:", logs);
+
       for (const log of logs) {
         try {
           console.log("Processing log:", log);
-          let poolId, roundNumber, winningSelection;
 
-          if (log.args) {
-            poolId = BigInt(log.args[0] || log.args.poolId);
-            roundNumber = BigInt(log.args[1] || log.args.round);
-            winningSelection = BigInt(log.args[2] || log.args.winningSelection);
-          } else {
-            poolId = BigInt(log.topics[1]);
-            const data = log.data;
-            console.log("Event data:", data);
-            roundNumber = BigInt(0);
-            winningSelection = BigInt(0);
-          }
+          // Extract event arguments, handling both named and positional formats
+          const args = log.args || {};
 
-          console.log("Extracted values:", {
-            poolId: poolId.toString(),
-            roundNumber: roundNumber.toString(),
-            winningSelection: winningSelection.toString(),
+          // Get poolId - try both named and indexed access
+          const eventPoolId =
+            "poolId" in args
+              ? Number(args.poolId)
+              : "0" in args
+              ? Number(args[0])
+              : undefined;
+
+          // Get round number
+          const roundNumber =
+            "round" in args
+              ? Number(args.round)
+              : "1" in args
+              ? Number(args[1])
+              : undefined;
+
+          // Get winning selection
+          const winningSelection =
+            "winningSelection" in args
+              ? Number(args.winningSelection)
+              : "2" in args
+              ? Number(args[2])
+              : undefined;
+
+          console.log("Extracted data:", {
+            eventPoolId,
+            roundNumber,
+            winningSelection,
           });
 
-          if (poolId === BigInt(pool.id)) {
-            console.log("Pool ID matched!");
+          // Skip if we couldn't extract necessary data
+          if (
+            eventPoolId === undefined ||
+            roundNumber === undefined ||
+            winningSelection === undefined
+          ) {
+            console.error("Could not extract complete data from event", log);
+            continue;
+          }
+
+          // Check if this is a new round completion (avoid processing the same round multiple times)
+          if (eventPoolId === pool.id && roundNumber > lastCompletedRound) {
+            console.log("New round completion detected for current pool!");
+            setLastCompletedRound(roundNumber);
+
+            // Stop animations immediately
             stopCoinAnimation();
-            refetchPlayerStatus();
 
-            const userSurvived = selectedChoice === Number(winningSelection);
+            // Update UI state to indicate processing
+            setIsWaitingForOthers(false);
 
+            // Determine if user survived based on their choice
+            const userChoice = selectedChoice;
+            const userSurvived = userChoice === winningSelection;
+
+            console.log("Round result:", {
+              userChoice,
+              winningSelection,
+              userSurvived,
+            });
+
+            // Update eliminated status immediately
+            if (!userSurvived) {
+              setIsEliminated(true);
+            }
+
+            // Force refresh player status from contract
+            refetchPlayerStatus().then(() => {
+              console.log("Player status refreshed after round completion");
+            });
+
+            // Show appropriate notification
             showNotification(
               userSurvived,
               `Round ${roundNumber} Completed!`,
@@ -256,23 +358,76 @@ const PlayGame = () => {
                 : "You were eliminated!"
             );
 
-            setTimeout(() => {
-              if (userSurvived) {
-                setRound(Number(roundNumber) + 1);
+            // Handle game state updates
+            if (userSurvived) {
+              // Set timeout to allow notification to be seen
+              setTimeout(() => {
+                setRound(roundNumber + 1);
                 setTimer(20);
                 setIsTimerActive(true);
                 setHasSubmitted(false);
-              } else {
-                navigate("/explore");
-              }
-            }, 3000);
+                setSelectedChoice(null);
+              }, 3000);
+            }
           }
         } catch (error) {
           console.error("Error processing event log:", error);
+          console.error(
+            "Error details:",
+            error instanceof Error ? error.message : String(error)
+          );
         }
       }
     },
   });
+
+  useWatchContractEvent({
+    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+    abi: CoinTossABI.abi,
+    eventName: "PoolCompleted",
+    onLogs: (logs) => {
+      console.log("PoolCompleted logs received:", logs);
+
+      for (const log of logs) {
+        try {
+          const args = log.args || {};
+          const eventPoolId =
+            "poolId" in args
+              ? Number(args.poolId)
+              : "0" in args
+              ? Number(args[0])
+              : undefined;
+
+          if (eventPoolId === pool.id) {
+            console.log("Pool completed!");
+
+            // Immediately check if the user is a winner
+            refetchPlayerStatus().then((result) => {
+              if (result.data && result.data[2]) {
+                // index 2 is isWinner
+                setIsWinner(true);
+                setShowWinnerPopup(true);
+              } else {
+                // User didn't win - redirect after notification
+                showNotification(
+                  false,
+                  "Game Over",
+                  "The pool has ended. Better luck next time!"
+                );
+                setTimeout(() => {
+                  navigate("/explore");
+                }, 3000);
+              }
+            });
+          }
+        } catch (error) {
+
+          console.error("Error processing PoolCompleted event:", error);
+        }
+      }
+    },
+  });
+
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
@@ -282,6 +437,7 @@ const PlayGame = () => {
     }, 100);
   };
 
+
   const stopCoinAnimation = () => {
     if (coinFlipInterval.current) {
       clearInterval(coinFlipInterval.current);
@@ -290,6 +446,15 @@ const PlayGame = () => {
     setIsCoinFlipping(false);
     setCoinRotation(0);
   };
+
+  // Start/stop coin animation
+  // const startCoinAnimation = () => {
+  //   setIsCoinFlipping(true);
+  //   coinFlipInterval.current = setInterval(() => {
+  //     setCoinRotation((prev) => (prev + 36) % 360);
+  //   }, 100);
+  // };
+
 
   // Show notification
   const showNotification = (
