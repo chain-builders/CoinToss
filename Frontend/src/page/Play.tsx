@@ -18,6 +18,7 @@ enum PlayerChoice {
 }
 
 const PlayGame = () => {
+
   const navigate = useNavigate();
   const location = useLocation();
   const pool = location.state.pools;
@@ -27,6 +28,7 @@ const PlayGame = () => {
   const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
     null
   );
+  
   const [round, setRound] = useState(1);
   const [timer, setTimer] = useState(31);
   const [isEliminated, setIsEliminated] = useState(false);
@@ -52,34 +54,32 @@ const PlayGame = () => {
   const [isWinner, setIsWinner] = useState(false);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
 
+  // _____________________________Fetch Player Status____________________________________
+
   const {
     data: playerStatus,
     refetch: refetchPlayerStatus,
     isLoading: isStatusLoading,
   } = useReadContract<PlayerStatus, string, [bigint, `0x${string}`]>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-
-    // @ts-ignore
     abi: CoinTossABI.abi,
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
 
   console.log(playerStatus);
+  console.log(pool)
 
-  // @ts-ignore
+//___________________________Player Status Destructuring____________________________________
+
   const isParticipant = playerStatus ? playerStatus[0] : false;
-
-  // @ts-ignore
   const isEliminatedStatus = playerStatus ? playerStatus[1] : false;
-
-  // @ts-ignore
   const isWinnerStatus = playerStatus ? playerStatus[2] : false;
-
-  // @ts-ignore
   const hasClaimed = playerStatus ? playerStatus[3] : false;
 
-  // Send transaction
+
+//___________________________Sending Transaction____________________________________
+
   const {
     writeContract,
     data: hash,
@@ -87,7 +87,8 @@ const PlayGame = () => {
     error: writeError,
   } = useWriteContract();
 
-  // Wait for transaction confirmation
+  //__________________________ Wait for transaction confirmation________________________________________
+
   const {
     isLoading: isConfirming,
     isSuccess: isConfirmed,
@@ -97,15 +98,15 @@ const PlayGame = () => {
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
 
   //___________________ Handle timer logic________________________________
+
   useEffect(() => {
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
+      }, 2000);
       return () => clearInterval(interval);
-    } else if (timer === 0 && !isWaitingForOthers) {
+    } else if (timer === 0) {
       setIsTimerActive(false);
-
       if (isWritePending || isConfirming) {
         showNotification(
           true,
@@ -118,10 +119,12 @@ const PlayGame = () => {
           "Transaction Failed",
           "Your transaction failed to process. Try Again"
         );
-        // setTimeout(() => {
-        //   navigate("/explore");
-        // }, 3000);
       } else if (isConfirmed) {
+        showNotification(
+          true,
+          "Success!",
+          "Your selection has been recorded!"
+        );
         setIsWaitingForOthers(true);
       }
     }
@@ -136,19 +139,21 @@ const PlayGame = () => {
     isConfirmed,
   ]);
 
+  //__________________________ Redirect Conditions________________________________
+
+
   useEffect(() => {
     // Check if we should redirect based on different conditions
     if (!pool) {
-      navigate("/explore"); // No pool data, redirect
+      navigate("/explore"); 
     } else if (hasClaimed) {
       navigate("/explore"); // Already claimed, redirect
     } else if (typeof pool.status === "number" && pool.status === 2) {
       // Pool is CLOSED (status 2)
       // Check if player is a winner before redirecting
       refetchPlayerStatus().then((result) => {
-        // @ts-ignore
+        
         if (!(result.data && result.data[2])) {
-          // Not a winner, redirect
           navigate("/explore");
         }
         // If winner, let them stay to claim prize
@@ -162,12 +167,9 @@ const PlayGame = () => {
     }
     if (typeof pool?.status === "number" && pool.status === 2) {
       refetchPlayerStatus().then((result) => {
-        // @ts-ignore
         if (result.data && result.data[2] && !result.data[3]) {
           // Is winner and hasn't claimed
           setShowClaimInterface(true);
-
-          // @ts-ignore
         } else if (!(result.data && result.data[2])) {
           navigate("/explore");
         }
@@ -175,16 +177,19 @@ const PlayGame = () => {
     }
   }, [pool, hasClaimed, navigate, refetchPlayerStatus]);
 
-  // Handle player elimination
+
+
+
+
+
+
+  //____________________________ Handle player elimination_____________________________________________
+
   useEffect(() => {
     if (playerStatus) {
-      // @ts-ignore
+     
       const isPlayerEliminated = playerStatus[1];
-
-      // @ts-ignore
       const isPlayerWinner = playerStatus[2];
-
-      // @ts-ignore
       const hasPlayerClaimed = playerStatus[3];
 
       // Update elimination status
@@ -202,6 +207,7 @@ const PlayGame = () => {
       }
 
       // Update winner status
+
       if (isPlayerWinner && !isWinner) {
         setIsWinner(true);
         setShowWinnerPopup(true);
@@ -248,6 +254,8 @@ const PlayGame = () => {
     await handleSubmit(selected);
   };
 
+  // ____________submitting the choice_____________________
+
   const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
@@ -278,7 +286,6 @@ const PlayGame = () => {
       showNotification(true, "Success!", "Your selection has been recorded!");
       setIsWaitingForOthers(true);
       setIsTimerActive(false);
-      setTimer(0);
     }
 
     if (writeError || receiptError) {
@@ -305,7 +312,7 @@ const PlayGame = () => {
           console.log("Processing log:", log);
 
           // Extract event arguments, handling both named and positional formats
-          // @ts-ignore
+       
           const args = log.args || {};
 
           // Get poolId - try both named and indexed access
