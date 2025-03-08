@@ -43,7 +43,6 @@ const RenderMyPoolsTab = () => {
   useEffect(() => {
     if (userPools) {
       try {
-        // @ts-ignore
         const transformedPools = transformPoolData(userPools);
         setSelectedPool(transformedPools);
       } catch (error) {
@@ -58,7 +57,6 @@ const RenderMyPoolsTab = () => {
     eventName: "PlayerJoined",
     onLogs: (logs) => {
       logs.forEach((log) => {
-        // @ts-ignore
         const poolId = Number(log.args.poolId);
 
         setSelectedPool((prevPools) =>
