@@ -36,6 +36,7 @@ const PoolsInterface: React.FC = () => {
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
   const [participants, setParticipants] = useState<`0x${string}`[]>([]);
   const [prizeAmountClaimed, setPrizeAmoutClaimed] = useState<number>(0);
+  const [joinEvents, setJoinEvents] = useState([]);
 
   const { setPoints } = useContext(MyContext);
 
@@ -63,36 +64,39 @@ const PoolsInterface: React.FC = () => {
     abi: ABI.abi,
     eventName: "PlayerJoined",
     onLogs: (logs) => {
-      logs.forEach((log) => {
-        console.log("Received logs:", logs);
-        if (!log.args) return;
+      if (!logs || logs.length === 0) return;
 
-        const poolId =
-          typeof log.args.poolId === "bigint" ? log.args.poolId : undefined;
-        const player =
-          typeof log.args.playerThatJoined === "string"
-            ? (log.args.playerThatJoined as `0x${string}`)
-            : undefined;
+      // Process each log entry
+      const processedEvents = logs
+        .map((log) => {
+          if (!log.args) return null;
 
-        if (!poolId || !player) {
-          console.error("Invalid event data structure:", log.args);
-          return;
-        }
+          const poolId =
+            typeof log.args.poolId === "bigint"
+              ? Number(log.args.poolId)
+              : typeof log.args.poolId === "number"
+              ? log.args.poolId
+              : undefined;
 
-        console.log("Player joined pool:", { poolId: Number(poolId), player });
+          const player =
+            typeof log.args.playerThatJoined === "string"
+              ? (log.args.playerThatJoined as `0x${string}`)
+              : undefined;
 
-        // Update UI
-        setParticipants((prev) => [...prev, player]);
+          if (poolId === undefined || !player) return null;
 
-        // Update the currentParticipants count for the joined pool
-        setNewPools((prevPools) =>
-          prevPools.map((pool) =>
-            pool.id === Number(poolId)
-              ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
-              : pool
-          )
-        );
+          return { poolId, player, timestamp: Date.now() };
+        })
+        .filter((event) => event !== null);
 
+      if (processedEvents.length === 0) return;
+
+      // Update join events - this will trigger the useEffect below
+      setJoinEvents((prev) => [...prev, ...processedEvents]);
+
+      // Visual feedback remains the same
+      processedEvents.forEach((event) => {
+        // Show toast
         toast.custom(
           <div className="flex items-center bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-lg shadow-lg">
             <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
@@ -101,8 +105,10 @@ const PoolsInterface: React.FC = () => {
             <div>
               <h3 className="font-bold text-white">New Challenger!</h3>
               <p className="text-green-100">
-                {`${player.substring(0, 6)}...${player.substring(38)}`} joined
-                pool #{Number(poolId)}
+                {`${event.player.substring(0, 6)}...${event.player.substring(
+                  38
+                )}`}{" "}
+                joined pool #{event.poolId}
               </p>
             </div>
           </div>,
@@ -112,22 +118,52 @@ const PoolsInterface: React.FC = () => {
           }
         );
 
-        // Show pulse animation on the pool card
+        // Show pulse animation
         setShowPulse((prev) => ({
           ...prev,
-          [Number(poolId)]: true,
+          [event.poolId]: true,
         }));
 
-        // Remove pulse after 2 seconds
+        // Remove pulse after animation completes
         setTimeout(() => {
           setShowPulse((prev) => ({
             ...prev,
-            [Number(poolId)]: false,
+            [event.poolId]: false,
           }));
         }, 2000);
       });
     },
   });
+
+  useEffect(() => {
+    if (joinEvents.length === 0) return;
+
+    // Group by poolId to handle multiple events for the same pool
+    const poolUpdates = {};
+    joinEvents.forEach((event) => {
+      poolUpdates[event.poolId] = (poolUpdates[event.poolId] || 0) + 1;
+    });
+
+    // Apply all updates at once
+    setNewPools((prevPools) =>
+      prevPools.map((pool) => {
+        const increment = poolUpdates[pool.id] || 0;
+        if (increment === 0) return pool;
+
+        return {
+          ...pool,
+          currentParticipants: pool.currentParticipants + increment,
+        };
+      })
+    );
+
+    // Clear processed events
+    setJoinEvents([]);
+  }, [joinEvents]);
+
+  useEffect(() => {
+    console.log("Pools updated:", newPools);
+  }, [newPools]);
 
   useWatchContractEvent({
     address: contractAddress,
