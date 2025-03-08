@@ -12,7 +12,7 @@ import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 
 enum PlayerChoice {
-  NONE = 0,
+  NONE = 0, 
   HEADS = 1,
   TAILS = 2,
 }
@@ -64,7 +64,7 @@ const PlayGame = () => {
   });
 
   console.log(playerStatus);
-
+  const isParticipant =playerStatus? playerStatus[0]: false;
   const isEliminatedStatus = playerStatus ? playerStatus[1] : false;
   const isWinnerStatus = playerStatus ? playerStatus[2] : false;
   const hasClaimed = playerStatus ? playerStatus[3] : false;
@@ -86,7 +86,7 @@ const PlayGame = () => {
 
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle timer logic
+  //___________________ Handle timer logic________________________________
   useEffect(() => {
     if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
@@ -106,11 +106,11 @@ const PlayGame = () => {
         showNotification(
           false,
           "Transaction Failed",
-          "Your transaction failed to process. You have been eliminated"
+          "Your transaction failed to process. Try Again"
         );
-        setTimeout(() => {
-          navigate("/explore");
-        }, 3000);
+        // setTimeout(() => {
+        //   navigate("/explore");
+        // }, 3000);
       } else if (isConfirmed) {
         setIsWaitingForOthers(true);
       }
@@ -161,21 +161,15 @@ const PlayGame = () => {
     }
   }, [pool, hasClaimed, navigate, refetchPlayerStatus]);
 
+
+  
   // Handle player elimination
   useEffect(() => {
     if (playerStatus) {
-      // Access elements safely without destructuring
-      const isParticipant = playerStatus[0];
+      
       const isPlayerEliminated = playerStatus[1];
       const isPlayerWinner = playerStatus[2];
       const hasPlayerClaimed = playerStatus[3];
-
-      console.log("Player status updated:", {
-        isParticipant,
-        isPlayerEliminated,
-        isPlayerWinner,
-        hasPlayerClaimed,
-      });
 
       // Update elimination status
       if (isPlayerEliminated && !isEliminated) {
@@ -221,9 +215,8 @@ const PlayGame = () => {
   useEffect(() => {
     if (isWaitingForOthers) {
       const interval = setInterval(() => {
-        console.log("Polling for player status updates...");
         refetchPlayerStatus();
-      }, 5000); // Poll every 5 seconds while waiting
+      }, 5000); 
 
       return () => clearInterval(interval);
     }
@@ -231,7 +224,9 @@ const PlayGame = () => {
 
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return;
+
+    if (!isTimerActive || timer <= 2 || isEliminated || hasSubmitted) return; 
+
     setSelectedChoice(selected);
     setHasSubmitted(true);
     startCoinAnimation();
@@ -246,7 +241,7 @@ const PlayGame = () => {
 
     try {
       setIsSubmitting(true);
-      await writeContract({
+      writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "makeSelection",
@@ -400,6 +395,7 @@ const PlayGame = () => {
     },
   });
 
+  // Handle PoolCompleted event
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
     abi: CoinTossABI.abi,
@@ -487,13 +483,6 @@ const PlayGame = () => {
     setCoinRotation(0);
   };
 
-  // Start/stop coin animation
-  // const startCoinAnimation = () => {
-  //   setIsCoinFlipping(true);
-  //   coinFlipInterval.current = setInterval(() => {
-  //     setCoinRotation((prev) => (prev + 36) % 360);
-  //   }, 100);
-  // };
 
   // Show notification
   const showNotification = (

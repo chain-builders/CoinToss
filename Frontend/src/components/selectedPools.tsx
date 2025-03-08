@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Trophy, Users, Coins, PlayCircle } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
 import ABI from "../utils/contract/CoinToss.json";
 import { PoolInterface } from "../utils/Interfaces";
@@ -15,26 +15,22 @@ const RenderMyPoolsTab = () => {
   const { address } = useAccount();
   const navigate = useNavigate();
 
-  const fetchPools = () => {
-    if (userPools) {
-      if (!Array.isArray(userPools)) {
-        throw new Error("Invalid pool data format");
-      }
-
-      const transformedPools: PoolInterface[] = userPools.map(
-        (pool, index) => ({
-          id: Number(pool.poolId),
-          entryFee: BigInt(pool.entryFee),
-          maxParticipants: Number(pool.maxParticipants),
-          currentParticipants: Number(pool.currentParticipants),
-          prizePool: Number(pool.prizePool),
-          poolStatus: Number(pool.status),
-        })
-      );
-
-      setSelectedPool(transformedPools);
+  const transformPoolData = useCallback((poolsData: any[]): PoolInterface[] => {
+    if (!Array.isArray(poolsData)) {
+      console.error("Invalid pool data format");
+      return [];
     }
-  };
+
+    return poolsData.map((pool) => ({
+      id: Number(pool.poolId),
+      entryFee: BigInt(pool.entryFee),
+      maxParticipants: Number(pool.maxParticipants),
+      currentParticipants: Number(pool.currentParticipants),
+      prizePool: Number(pool.prizePool),
+      poolStatus: Number(pool.status),
+      currentRound: Number(pool.currentRound || 1),
+    }));
+  }, []);
 
   const { data: userPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
@@ -45,8 +41,15 @@ const RenderMyPoolsTab = () => {
   });
 
   useEffect(() => {
-    fetchPools();
-  }, [userPools]);
+    if (userPools) {
+      try {
+        const transformedPools = transformPoolData(userPools);
+        setSelectedPool(transformedPools);
+      } catch (error) {
+        console.error("Error processing pool data:", error);
+      }
+    }
+  }, [userPools, transformPoolData]);
 
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -58,6 +61,9 @@ const RenderMyPoolsTab = () => {
   });
 
   const handlePlay = (pools: PoolInterface) => {
+    if (pools.poolStatus !== 1 || pools.currentParticipants !== pools.maxParticipants) {
+      return; 
+    }
     navigate("/playgame", { state: { pools } });
   };
 
