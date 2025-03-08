@@ -44,7 +44,7 @@ const HeroPage = () => {
 
   return (
     <>
-      <section className="relative md:h-[35rem] flex items-center overflow-hidden">
+      <section className="relative md:h-[40rem] flex items-center overflow-hidden">
         {/* Rich Dark Background with Gold Accents */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black"></div>

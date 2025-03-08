@@ -1,10 +1,9 @@
 import { Coins } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useContext, useEffect, useRef } from "react";
+import {useEffect, useRef } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
-import { MyContext } from "../context/contextApi";
 import ABI from "../utils/contract/CoinToss.json";
 
 const Header = () => {
@@ -29,13 +28,11 @@ const Header = () => {
     }
   }, [isConnected, location.pathname, navigate]);
   
-  // const {_points}=useContext(MyContext)
+
  
 
   const {
     data: userPoints,
-    isLoading,
-    error,
   } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
@@ -70,7 +67,7 @@ const Header = () => {
           {isConnected && (
             <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg flex items-center border border-gray-800">
               <Coins size={16} className="text-yellow-500 mr-2" />
-              <span className="font-medium text-yellow-500">{userPoints}</span>
+              <span className="font-medium text-yellow-500">{userPoints as number}</span>
               <span className="text-gray-400 ml-1 text-sm">POINTS</span>
             </div>
           )}
@@ -79,7 +76,6 @@ const Header = () => {
             <ConnectButton.Custom>
               {({
                 account,
-                chain,
                 openAccountModal,
                 openConnectModal,
                 mounted,
