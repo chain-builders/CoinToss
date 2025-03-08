@@ -7,13 +7,17 @@ This game is designed to be **fair, transparent, and fully decentralized**, runn
 ---
 
 ## Game Logic
-**I'll be using a pool of 10 players for all instances. If you see the word 'pool' it means a pool of 10 players** 
+
+**I'll be using a pool of 10 players for all instances. If you see the word 'pool' it means a pool of 10 players**
+
 ### **Joining a Pool**
+
 - A player **joins a pool of 3 or multiple players** by staking a predefined amount set by the contract owner (only onwer can create main pools).
 - Once a pool is full (**10 players have joined**), the game begins automatically.
 - Users can also create private where they have control over the stake amount and pool size.
 
 ### **Rounds & Elimination**
+
 - Each player chooses either **heads or tails**.
 - The **majority group is eliminated** from the game after every round.
 - The **minority group advances** to the next round.
@@ -21,11 +25,13 @@ This game is designed to be **fair, transparent, and fully decentralized**, runn
 - A pool of 10 players can have **Maximum of 3 rounds per pool** (because the maximum possible split is 5-5 → 3-2 → 2-1).
 
 ### **Winning Conditions**
+
 - If a single player remains **before 3 rounds** (e.g., 9 pick heads and 1 picks tails in Round 1), that player wins **the entire staked amount**.
 - If **two players remain at the end of 3 rounds**, they **split the total staked amount** equally.
 - The contract **deducts a percentage fee** from every closed pool (this fee goes to the contract owner).
 
 ### **Pool Creation**
+
 - **Only the contract owner can create new pools**.
 - Pools must be initialized with a **staking amount, a maximum player limit (10), and a fee percentage**.
 - Players can **only join active pools** (not yet full or completed).
@@ -33,13 +39,16 @@ This game is designed to be **fair, transparent, and fully decentralized**, runn
 ---
 
 ## **Tech Stack**
+
 ### **Smart Contract**
+
 - **Solidity** (Developed using Foundry for testing and deployment)
 - **OpenZeppelin Libraries** (for security, access control, and utility functions)
 - **Custom Libraries** (Errors, Events)
 - **Remappings** (to efficiently manage dependencies and imports)
 
 ### **Frontend**
+
 - **Vite + React + TypeScript** (for performance and maintainability)
 - **Node Modules** (Package management)
 - **WAGMI & Ethers.js** (for interacting with the smart contract)
@@ -53,7 +62,9 @@ This game is designed to be **fair, transparent, and fully decentralized**, runn
 ---
 
 ## **Setup & Deployment**
+
 ### **Smart Contract (Foundry)**
+
 ```sh
 forge install
 forge build
@@ -62,6 +73,7 @@ forge script script/Deploy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
 ```
 
 ### **Frontend Setup**
+
 ```sh
 cd frontend
 npm install
@@ -71,38 +83,49 @@ npm run dev
 ---
 
 ## **Interacting with the Contract**
+
 ### **Key Functions**
+
 #### **Joining a Pool**
+
 ```solidity
 function joinPool(uint256 poolId, bool choice) external payable;
 ```
+
 - Players call this function to join an active pool.
 - They **must stake the required amount** to participate.
 - The **choice (true for heads, false for tails)** must be submitted.
 
 #### **Creating a Pool (Owner Only)**
+
 ```solidity
 function createPool(uint256 stakeAmount, uint256 feePercentage) external onlyOwner;
 ```
+
 - The contract owner can **create a new game pool** with a specific staking amount.
 - The fee percentage is set at **pool creation**.
 
 #### **Fetching Active Pools**
+
 ```solidity
 function getActivePools() external view returns (Pool[] memory);
 ```
+
 - Fetches all **ongoing pools that are not full or completed**.
 
 #### **Claiming Winnings**
+
 ```solidity
 function claimWinnings(uint256 poolId) external;
 ```
+
 - Winners call this function to **withdraw their share of the pool**.
 - Ensures **funds are transferred securely** to the winner(s).
 
 ---
 
 ## **Security & Best Practices**
+
 - **Reentrancy Protection:** Uses OpenZeppelin’s `ReentrancyGuard` to prevent attacks.
 - **Access Control:** Only **the owner can create pools**.
 - **Fair Randomization:** The game logic ensures fairness by **eliminating the majority group**, preventing exploits.
@@ -112,27 +135,34 @@ function claimWinnings(uint256 poolId) external;
 ---
 
 ## **Future Improvements**
+
 - **NFT Rewards**: Implement NFT prizes for winners.
 - **Leaderboard System**: Track player performance and earnings.
 - **Referral System**: Reward users for inviting new players.
 - **More Pool Sizes**: Expand beyond 10-player pools for diverse gameplay.
 
 ---
-## Contract Address:
-**0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070**
 
-[View on Block Explorer](https://scan.test2.btcs.network/address/0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070)
----
+## Contract Address:
+
+**0x9f10AA66C96E71499E0FEA03A785B36c2b5d48fD**
+
+## [View on Block Explorer](https://scan.test2.btcs.network/address/0x1d6eA74B226047d2170BcBC7a00342D0203eF1c9)
+
 ## Demo Video
 
-[Watch the demo](https://www.loom.com/share/a30e0e54fbde489d881cee92266c5507)
----
+## [Watch the demo](https://www.loom.com/share/a30e0e54fbde489d881cee92266c5507)
+
+## Pitch Deck
+
+## [View Pitch Deck](https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit?usp=sharing)
 
 ## **Contributions**
+
 We welcome community contributions! Feel free to **submit issues, pull requests, or suggestions** for improving TheOnePercent.
----
-## For any questions, feel free to reach out to the development team. 
-**Connect With Us**
+For any questions, feel free to reach out to the development team.
+
+<!-- **Connect With Us**
 
 | Role           | Twitter Handle |
 |---------------|------------------------------------------------|
@@ -141,5 +171,4 @@ We welcome community contributions! Feel free to **submit issues, pull requests,
 | Member 1       | [@Member1Twitter](https://twitter.com/Member1Twitter) |
 | Member 2       | [@Member2Twitter](https://twitter.com/Member2Twitter) |
 | Member 3       | [@Member3Twitter](https://twitter.com/Member3Twitter) |
-| Member 4       | [@Member4Twitter](https://twitter.com/Member4Twitter) |
-
+| Member 4       | [@Member4Twitter](https://twitter.com/Member4Twitter) | -->
