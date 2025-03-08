@@ -22,6 +22,15 @@ import SelectedPoolDetails from "./SelectedPoolDetails";
 import toast from "react-hot-toast";
 import { setPoolNames } from "../utils/utilFunction";
 // import AboutToFull from "./AboutToFull";
+interface PlayerJoinedEvent {
+  poolId: bigint;
+  playerThatJoined: `0x${string}`;
+ 
+}
+interface ContractEventLog {
+  args: PlayerJoinedEvent | null;
+  name: string;
+}
 
 const PoolsInterface: React.FC = () => {
   const [newPools, setNewPools] = useState<PoolInterface[]>([]);
@@ -32,25 +41,20 @@ const PoolsInterface: React.FC = () => {
   const [showPulse, setShowPulse] = useState<{ [key: number]: boolean }>({});
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>("");
-  const [joining, setJoining] = useState(false);
+  const [_joining, setJoining] = useState(false);
   const [joinedPools, setJoinedPools] = useState<number[]>([]);
-  const [participants, setParticipants] = useState<`0x${string}`[]>([]);
-  const [prizeAmountClaimed, setPrizeAmoutClaimed] = useState<number>(0);
-
+  const [_participants, setParticipants] = useState<`0x${string}`[]>([]);
   const { setPoints } = useContext(MyContext);
 
   const {
     writeContract,
     data: hash,
     isPending: isWritePending,
-    error,
   } = useWriteContract();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
   const {
     data: balanceData,
-    isLoading,
-    isError,
   } = useBalance({ address: address, chainId: 1114 });
 
   const { recentWinners, setMyPools } = useContext(MyContext);
@@ -62,8 +66,8 @@ const PoolsInterface: React.FC = () => {
     address: contractAddress,
     abi: ABI.abi,
     eventName: "PlayerJoined",
-    onLogs: (logs) => {
-      logs.forEach((log) => {
+    onLogs: (logs: any) => {
+      logs.forEach((log: any) => {
         console.log("Received logs:", logs);
         if (!log.args) return;
 
@@ -129,70 +133,82 @@ const PoolsInterface: React.FC = () => {
     },
   });
 
-  useWatchContractEvent({
-    address: contractAddress,
-    abi: ABI.abi,
-    eventName: "PointsAwarded",
-    onLogs: (logs) => {
-      logs.forEach((log) => {
-        if (!log.args || typeof log.args !== "object") {
-          return;
+ useWatchContractEvent({
+  address: contractAddress,
+  abi: ABI.abi,
+  eventName: "PlayerJoined",
+  //@ts-ignore
+  onLogs: (logs: ContractEventLog[]) => {
+    logs.forEach((log) => {
+      console.log("Received logs:", logs);
+      
+      // Safely check if args exists
+      if (!log.args) {
+        console.error("Event log has no args:", log);
+        return;
+      }
+      
+      // Type assertion with safety checks
+      const args = log.args as PlayerJoinedEvent;
+      
+      // Use optional chaining with nullish coalescing for safer access
+      const poolId = args?.poolId;
+      const player = args?.playerThatJoined;
+      
+      if (!poolId || !player) {
+        console.error("Invalid event data structure:", args);
+        return;
+      }
+      
+      console.log("Player joined pool:", { poolId: Number(poolId), player });
+      
+      // Update UI
+      setParticipants((prev) => [...prev, player]);
+      
+      // Update the currentParticipants count for the joined pool
+      setNewPools((prevPools) =>
+        prevPools.map((pool) =>
+          pool.id === Number(poolId)
+            ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
+            : pool
+        )
+      );
+      
+      toast.custom(
+        <div className="flex items-center bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-lg shadow-lg">
+          <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+            <span className="text-xl">👤</span>
+          </div>
+          <div>
+            <h3 className="font-bold text-white">New Challenger!</h3>
+            <p className="text-green-100">
+              {`${player.substring(0, 6)}...${player.substring(38)}`} joined
+              pool #{Number(poolId)}
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 4000,
+          position: "top-right",
         }
-        // Extract and validate player address
-        const player =
-          typeof log.args.player === "string" ? log.args.player : undefined;
-        if (!player || !isAddress(player)) {
-          return;
-        }
-
-        // Extract and validate points
-        const points =
-          log.args.points !== undefined ? BigInt(log.args.points) : undefined;
-        if (points === undefined || points < 0n) {
-          return;
-        }
-        setPoints(Number(points));
-        const actionType =
-          log.args.reason !== undefined ? Number(log.args.reason) : undefined;
-        if (actionType === undefined || ![1, 2, 3].includes(actionType)) {
-          return;
-        }
-        // Map actionType to text and icon
-        const actionDetails = {
-          1: { text: "Joining Pool", icon: "🎮" },
-          2: { text: "Round Win", icon: "🎯" },
-          3: { text: "Final Win", icon: "🏆" },
-        };
-
-        const { text: actionText, icon } = actionDetails[actionType] || {
-          text: "Unknown Action",
-          icon: "🎮",
-        };
-
-        // Display toast notification
-        toast.custom(
-          <div className="flex items-center bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-lg shadow-lg">
-            <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
-              <span className="text-xl">{icon}</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-white">Points Earned!</h3>
-              <p className="text-blue-100">
-                {`${player.substring(0, 6)}...${player.substring(
-                  player.length - 4
-                )}`}{" "}
-                earned {points.toString()} points for {actionText}
-              </p>
-            </div>
-          </div>,
-          {
-            duration: 4000,
-            position: "top-right",
-          }
-        );
-      });
-    },
-  });
+      );
+      
+      // Show pulse animation on the pool card
+      setShowPulse((prev) => ({
+        ...prev,
+        [Number(poolId)]: true,
+      }));
+      
+      // Remove pulse after 2 seconds
+      setTimeout(() => {
+        setShowPulse((prev) => ({
+          ...prev,
+          [Number(poolId)]: false,
+        }));
+      }, 2000);
+    });
+  },
+});
   // all pools
   const { data: allPools } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
@@ -284,6 +300,7 @@ const PoolsInterface: React.FC = () => {
         abi: ABI.abi,
         functionName: "joinPool",
         args: [BigInt(poolId)],
+        //@ts-ignore
         value: entryFee,
         gas: BigInt(300000),
       });
@@ -297,6 +314,8 @@ const PoolsInterface: React.FC = () => {
   const handlePoolSelect = (pool: PoolInterface) => {
     setSelectedPool(pool);
     setIsModalOpen(true);
+
+    //@ts-ignore
     const stakeText = pool.stake?.replace("$", "") || "0";
     setStakeAmount(parseInt(stakeText, 10) || 0);
   };
@@ -306,12 +325,14 @@ const PoolsInterface: React.FC = () => {
     setSelectedPool(null);
     setIsStaking(false);
   };
+
+
   const handleStake = async () => {
     if (!selectedPool) return;
 
     try {
       await handleJoinPool(selectedPool.id, selectedPool.entryFee);
-      setUserBalance((prevBalance) => prevBalance - stakeAmount);
+      setUserBalance((prevBalance:any) => prevBalance - stakeAmount);
     } catch (error) {
       console.error("Transaction failed:", error);
       showPoolNotification("Transaction failed. Please try again.");
