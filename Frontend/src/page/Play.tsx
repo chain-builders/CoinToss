@@ -43,15 +43,14 @@ const PlayGame = () => {
 
   const [lastCompletedRound, setLastCompletedRound] = useState(0);
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+  const [showClaimInterface, setShowClaimInterface] = useState(false);
 
   type PlayerStatus = [boolean, boolean, boolean, boolean];
 
   // Fetch player status
 
-
   const [isWinner, setIsWinner] = useState(false);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
-
 
   const {
     data: playerStatus,
@@ -59,7 +58,7 @@ const PlayGame = () => {
     isLoading: isStatusLoading,
   } = useReadContract<PlayerStatus, string, [bigint, `0x${string}`]>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-    abi: CoinTossABI.abi, 
+    abi: CoinTossABI.abi,
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
@@ -126,18 +125,41 @@ const PlayGame = () => {
     receiptError,
     isConfirmed,
   ]);
- 
-  // when the 
+
   useEffect(() => {
-    if (
-      !pool ||
+    // Check if we should redirect based on different conditions
+    if (!pool) {
+      navigate("/explore"); // No pool data, redirect
+    } else if (hasClaimed) {
+      navigate("/explore"); // Already claimed, redirect
+    } else if (typeof pool.status === "number" && pool.status === 2) {
+      // Pool is CLOSED (status 2)
+      // Check if player is a winner before redirecting
+      refetchPlayerStatus().then((result) => {
+        if (!(result.data && result.data[2])) {
+          // Not a winner, redirect
+          navigate("/explore");
+        }
+        // If winner, let them stay to claim prize
+      });
+    } else if (
       (typeof pool.status === "number" && pool.status !== 2) ||
-      (typeof pool.status === "string" && pool.status !== "ACTIVE") ||
-      hasClaimed
+      (typeof pool.status === "string" && pool.status !== "ACTIVE")
     ) {
+      // Pool is not active and not closed (other status), redirect
       navigate("/explore");
     }
-  }, [pool, hasClaimed, navigate]);
+    if (typeof pool?.status === "number" && pool.status === 2) {
+      refetchPlayerStatus().then((result) => {
+        if (result.data && result.data[2] && !result.data[3]) {
+          // Is winner and hasn't claimed
+          setShowClaimInterface(true);
+        } else if (!(result.data && result.data[2])) {
+          navigate("/explore");
+        }
+      });
+    }
+  }, [pool, hasClaimed, navigate, refetchPlayerStatus]);
 
   // Handle player elimination
   useEffect(() => {
@@ -185,7 +207,6 @@ const PlayGame = () => {
         setShowWinnerPopup(true);
       }
     }
-
   }, [playerStatus, isEliminated, isWinner, showWinnerPopup, pool, navigate]);
 
   // Handle player winning the game
@@ -208,10 +229,9 @@ const PlayGame = () => {
     }
   }, [isWaitingForOthers, refetchPlayerStatus]);
 
-  
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; 
+    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return;
     setSelectedChoice(selected);
     setHasSubmitted(true);
     startCoinAnimation();
@@ -248,7 +268,7 @@ const PlayGame = () => {
       showNotification(true, "Success!", "Your selection has been recorded!");
       setIsWaitingForOthers(true);
       setIsTimerActive(false);
-      setTimer(0)
+      setTimer(0);
     }
 
     if (writeError || receiptError) {
@@ -262,7 +282,6 @@ const PlayGame = () => {
   }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
-
 
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -407,6 +426,19 @@ const PlayGame = () => {
                 // index 2 is isWinner
                 setIsWinner(true);
                 setShowWinnerPopup(true);
+                // Do NOT redirect winners - they need to claim their prize
+
+                // Update game state to reflect completion
+                setIsTimerActive(false);
+                setTimer(0);
+                setIsWaitingForOthers(false);
+
+                // Show a notification that the game is complete and they won
+                showNotification(
+                  true,
+                  "You Won!",
+                  "The pool has ended and you are a winner!"
+                );
               } else {
                 // User didn't win - redirect after notification
                 showNotification(
@@ -416,18 +448,27 @@ const PlayGame = () => {
                 );
                 setTimeout(() => {
                   navigate("/explore");
-                }, 3000);
+                }, 5000);
               }
             });
           }
         } catch (error) {
-
           console.error("Error processing PoolCompleted event:", error);
+          console.error(
+            "Error details:",
+            error instanceof Error ? error.message : String(error)
+          );
+
+          // Show a generic notification in case of error
+          showNotification(
+            false,
+            "Error",
+            "An error occurred while processing the game result"
+          );
         }
       }
     },
   });
-
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
@@ -436,7 +477,6 @@ const PlayGame = () => {
       setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
   };
-
 
   const stopCoinAnimation = () => {
     if (coinFlipInterval.current) {
@@ -454,7 +494,6 @@ const PlayGame = () => {
   //     setCoinRotation((prev) => (prev + 36) % 360);
   //   }, 100);
   // };
-
 
   // Show notification
   const showNotification = (
@@ -500,6 +539,28 @@ const PlayGame = () => {
     }
   };
 
+  if (showClaimInterface) {
+    return (
+      <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
+        <div className="p-8 rounded-xl border-4 border-green-500 bg-green-900 bg-opacity-90 text-center max-w-md">
+          <div className="text-6xl mb-4 text-green-400">🏆</div>
+          <h2 className="text-3xl font-bold text-white mb-2">
+            Congratulations Winner!
+          </h2>
+          <p className="text-xl text-green-300">
+            This pool has ended and you are a winner! Claim your prize now.
+          </p>
+          <button
+            onClick={handleClaimPrize}
+            disabled={isSubmitting}
+            className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
+          >
+            {isSubmitting ? "Claiming..." : "Claim Prize"}
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
       {/* Top Game Status Bar */}
