@@ -2,8 +2,8 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-gas-price = 100000000000
-priority-gas-price = 100000000000
+gas-price = 100000000
+
 
 
 
