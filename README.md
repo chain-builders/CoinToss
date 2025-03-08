@@ -145,13 +145,17 @@ function claimWinnings(uint256 poolId) external;
 
 ## Contract Address:
 
-**0x1d6eA74B226047d2170BcBC7a00342D0203eF1c9**
+**0x9f10AA66C96E71499E0FEA03A785B36c2b5d48fD**
 
 ## [View on Block Explorer](https://scan.test2.btcs.network/address/0x1d6eA74B226047d2170BcBC7a00342D0203eF1c9)
 
 ## Demo Video
 
 ## [Watch the demo](https://www.loom.com/share/a30e0e54fbde489d881cee92266c5507)
+
+## Pitch Deck
+
+## [View Pitch Deck](https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit?usp=sharing)
 
 ## **Contributions**
 
