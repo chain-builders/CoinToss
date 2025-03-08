@@ -352,7 +352,7 @@ contract CoinToss is Ownable {
             });
         }
         return allPools;
-    }eef13d540b76db7188acc8c612dbf085
+    }
 
     function getUserPools() external view returns (PoolInfo[] memory) {
         uint[] storage poolIds = userPools[msg.sender];
