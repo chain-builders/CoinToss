@@ -16,7 +16,7 @@ enum PlayerChoice {
   HEADS = 1,
   TAILS = 2,
 }
-type PlayerStatus = [boolean, boolean, boolean, boolean];
+
 const PlayGame = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,7 +28,7 @@ const PlayGame = () => {
     null
   );
   const [round, setRound] = useState(1);
-  const [timer, setTimer] = useState(20); // Timer starts immediately
+  const [timer, setTimer] = useState(20);
   const [isEliminated, setIsEliminated] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
@@ -43,23 +43,31 @@ const PlayGame = () => {
 
   const [lastCompletedRound, setLastCompletedRound] = useState(0);
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+
+  type PlayerStatus = [boolean, boolean, boolean, boolean];
+
+  // Fetch player status
+
+
   const [isWinner, setIsWinner] = useState(false);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+
 
   const {
     data: playerStatus,
     refetch: refetchPlayerStatus,
     isLoading: isStatusLoading,
-  } = useReadContract<PlayerStatus>({
+  } = useReadContract<PlayerStatus, string, [bigint, `0x${string}`]>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-    abi: CoinTossABI.abi,
+    abi: CoinTossABI.abi, 
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
+
   console.log(playerStatus);
 
-  const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
-  const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
+  const isEliminatedStatus = playerStatus ? playerStatus[1] : false;
+  const isWinnerStatus = playerStatus ? playerStatus[2] : false;
   const hasClaimed = playerStatus ? playerStatus[3] : false;
 
   // Send transaction
@@ -118,7 +126,8 @@ const PlayGame = () => {
     receiptError,
     isConfirmed,
   ]);
-
+ 
+  // when the 
   useEffect(() => {
     if (
       !pool ||
@@ -129,8 +138,6 @@ const PlayGame = () => {
       navigate("/explore");
     }
   }, [pool, hasClaimed, navigate]);
-
-  console.log(pool);
 
   // Handle player elimination
   useEffect(() => {
@@ -178,12 +185,14 @@ const PlayGame = () => {
         setShowWinnerPopup(true);
       }
     }
+
   }, [playerStatus, isEliminated, isWinner, showWinnerPopup, pool, navigate]);
+
   // Handle player winning the game
   useEffect(() => {
     if (isWinnerStatus && pool?.status === 2) {
       setIsWinner(true);
-      setShowWinnerPopup(true); // Show winner pop-up
+      setShowWinnerPopup(true);
     }
   }, [isWinnerStatus, pool]);
 
@@ -199,19 +208,12 @@ const PlayGame = () => {
     }
   }, [isWaitingForOthers, refetchPlayerStatus]);
 
-  // Start/stop coin animation
-  const startCoinAnimation = () => {
-    setIsCoinFlipping(true);
-    coinFlipInterval.current = setInterval(() => {
-      setCoinRotation((prev) => (prev + 36) % 360);
-    }, 100);
-  };
-
+  
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; // Prevent reselection
+    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; 
     setSelectedChoice(selected);
-    setHasSubmitted(true); // Mark as submitted
+    setHasSubmitted(true);
     startCoinAnimation();
     await handleSubmit(selected);
   };
@@ -234,7 +236,7 @@ const PlayGame = () => {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
       setIsSubmitting(false);
-      stopCoinAnimation(); // Stop animation on failure
+      stopCoinAnimation();
     }
   };
 
@@ -245,6 +247,8 @@ const PlayGame = () => {
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
       setIsWaitingForOthers(true);
+      setIsTimerActive(false);
+      setTimer(0)
     }
 
     if (writeError || receiptError) {
@@ -256,6 +260,9 @@ const PlayGame = () => {
       );
     }
   }, [isConfirmed, writeError, receiptError]);
+
+  // Handle RoundCompleted event
+
 
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -414,11 +421,22 @@ const PlayGame = () => {
             });
           }
         } catch (error) {
+
           console.error("Error processing PoolCompleted event:", error);
         }
       }
     },
   });
+
+
+  // Start/stop coin animation
+  const startCoinAnimation = () => {
+    setIsCoinFlipping(true);
+    coinFlipInterval.current = setInterval(() => {
+      setCoinRotation((prev) => (prev + 36) % 360);
+    }, 100);
+  };
+
 
   const stopCoinAnimation = () => {
     if (coinFlipInterval.current) {
@@ -428,6 +446,15 @@ const PlayGame = () => {
     setIsCoinFlipping(false);
     setCoinRotation(0);
   };
+
+  // Start/stop coin animation
+  // const startCoinAnimation = () => {
+  //   setIsCoinFlipping(true);
+  //   coinFlipInterval.current = setInterval(() => {
+  //     setCoinRotation((prev) => (prev + 36) % 360);
+  //   }, 100);
+  // };
+
 
   // Show notification
   const showNotification = (
@@ -451,11 +478,12 @@ const PlayGame = () => {
       setShowWinnerPopup(true);
     }
   }, [isWinnerStatus]);
+
   // Handle token claim
   const handleClaimPrize = async () => {
     try {
       setIsSubmitting(true);
-      await writeContract({
+      writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "claimPrize",
@@ -475,30 +503,35 @@ const PlayGame = () => {
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
       {/* Top Game Status Bar */}
-      <div className="w-full max-w-4xl px-4">
+      <div className="w-full max-w-4xl px-2">
         <div className="flex justify-between items-center bg-black bg-opacity-70 px-6 py-3 rounded-lg border border-gray-800 mb-8">
           <div className="flex items-center">
             <div className="bg-yellow-600 w-10 h-10 rounded-full flex items-center justify-center border border-yellow-500 mr-3">
               <span className="text-white font-bold">{round}</span>
             </div>
-            <div>
+            <div className="flex flex-col items-center">
               <div className="text-gray-400 text-xs">ROUND</div>
-              <div className="text-white font-bold text-center">{round}</div>
+              <div className="text-2xl font-bold text-yellow-500">{round}</div>
             </div>
           </div>
 
           <div className="text-center">
             <div className="text-xs text-gray-400">REMAINING PLAYERS</div>
             <div className="text-2xl font-bold text-yellow-500">
-              {pool.remainingPlayers}
+              {pool.currentParticipants}
             </div>
           </div>
 
           <div className="text-right">
-            <div className="text-xs text-gray-400">POTENTIAL REWARD</div>
+            <div className="flex flex-row items-center">
+              <span className="text-xs hidden md:flex flex-row mr-2 text-gray-400">
+                POTENTIAL
+              </span>
+              <span className="text-xs text-gray-400"> REWARD</span>
+            </div>
+
             <div className="text-2xl font-bold text-yellow-500 animate-pulse-slow">
-              +{Math.floor(pool.remainingPlayers * 0.8)}{" "}
-              <span className="text-xs">Points</span>
+              +120 <span className="text-xs">Points</span>
             </div>
           </div>
         </div>
