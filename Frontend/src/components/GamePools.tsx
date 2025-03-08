@@ -71,45 +71,33 @@ const PoolsInterface: React.FC = () => {
     eventName: "PlayerJoined",
 
     onLogs: (logs) => {
-      if (!logs || logs.length === 0) return;
-      // Process each log entry
-      const processedEvents = logs
-        .map((log) => {
-          // @ts-ignore
-          if (!log.args) return null;
+      logs.forEach((log) => {
+        console.log("Received logs:", logs);
+        if (!log.args) return;
 
-          const poolId =
-          // @ts-ignore
-            typeof log.args.poolId === "bigint"
-          // @ts-ignore
-              ? Number(log.args.poolId)
-          // @ts-ignore
-              : typeof log.args.poolId === "number"
-          // @ts-ignore
-              ? log.args.poolId
-              : undefined;
+        const poolId =
+          typeof log.args.poolId === "bigint" ? log.args.poolId : undefined;
+        const player =
+          typeof log.args.playerThatJoined === "string"
+            ? (log.args.playerThatJoined as `0x${string}`)
+            : undefined;
+        if (!poolId || !player) {
+          console.error("Invalid event data structure:", log.args);
+          return;
+        }
 
-          // @ts-ignore
-          const player = typeof log.args.playerThatJoined === "string"
-          // @ts-ignore
-              ? (log.args.playerThatJoined as `0x${string}`)
-              : undefined;
+        console.log("Player joined pool:", { poolId: Number(poolId), player });
 
-          if (poolId === undefined || !player) return null;
-
-          return { poolId, player, timestamp: Date.now() };
-        })
-        .filter((event) => event !== null);
-
-      if (processedEvents.length === 0) return;
-
-      // Update join events - this will trigger the useEffect below
-          // @ts-ignore
-      setJoinEvents((prev) => [...prev, ...processedEvents]);
-
-      // Visual feedback remains the same
-      processedEvents.forEach((event) => {
-        // Show toast
+        // Update UI
+        setParticipants((prev) => [...prev, player]);
+        // Update the currentParticipants count for the joined pool
+        setNewPools((prevPools) =>
+          prevPools.map((pool) =>
+            pool.id === Number(poolId)
+              ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
+              : pool
+          )
+        );
         toast.custom(
           <div className="flex items-center bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-lg shadow-lg">
             <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
@@ -118,10 +106,8 @@ const PoolsInterface: React.FC = () => {
             <div>
               <h3 className="font-bold text-white">New Challenger!</h3>
               <p className="text-green-100">
-                {`${event.player.substring(0, 6)}...${event.player.substring(
-                  38
-                )}`}{" "}
-                joined pool #{event.poolId}
+                {`${player.substring(0, 6)}...${player.substring(38)}`} joined
+                pool #{Number(poolId)}
               </p>
             </div>
           </div>,
@@ -131,38 +117,34 @@ const PoolsInterface: React.FC = () => {
           }
         );
 
-        // Show pulse animation
+        // Show pulse animation on the pool card
         setShowPulse((prev) => ({
           ...prev,
-          [event.poolId]: true,
+          [Number(poolId)]: true,
         }));
 
-        // Remove pulse after animation completes
+        // Remove pulse after 2 seconds
         setTimeout(() => {
           setShowPulse((prev) => ({
             ...prev,
-            [event.poolId]: false,
+            [Number(poolId)]: false,
           }));
         }, 2000);
       });
     },
   });
 
-
   useEffect(() => {
     if (joinEvents.length === 0) return;
-
-    // Group by poolId to handle multiple events for the same pool
     const poolUpdates = {};
     joinEvents.forEach((event) => {
-      // @ts-ignore
+     
       poolUpdates[event.poolId] = (poolUpdates[event.poolId] || 0) + 1;
     });
 
-    // Apply all updates at once
+   
     setNewPools((prevPools) =>
       prevPools.map((pool) => {
-          // @ts-ignore
         const increment = poolUpdates[pool.id] || 0;
         if (increment === 0) return pool;
 
@@ -187,25 +169,22 @@ const PoolsInterface: React.FC = () => {
     eventName: "PointsAwarded",
     onLogs: (logs) => {
       logs.forEach((log) => {
-          // @ts-ignore
+          
         if (!log.args || typeof log.args !== "object") {
           return;
         }
         // Extract and validate player address
-          // @ts-ignore
         const player = typeof log.args.player === "string" ? log.args.player : undefined;
         if (!player || !isAddress(player)) {
           return;
         }
 
         // Extract and validate points
-          // @ts-ignore
         const points = log.args.points !== undefined ? BigInt(log.args.points) : undefined;
         if (points === undefined || points < 0n) {
           return;
         }
         setPoints(Number(points));
-        // @ts-ignore
         const actionType = log.args.reason !== undefined ? Number(log.args.reason) : undefined;
         if (actionType === undefined || ![1, 2, 3].includes(actionType)) {
           return;
@@ -215,7 +194,6 @@ const PoolsInterface: React.FC = () => {
       // Show pulse animation on the pool card
       setShowPulse((prev) => ({
         ...prev,
-        // @ts-ignore
         [Number(poolId)]: true,
       }));
       
@@ -223,7 +201,6 @@ const PoolsInterface: React.FC = () => {
       setTimeout(() => {
         setShowPulse((prev) => ({
           ...prev,
-          // @ts-ignore
           [Number(poolId)]: false,
         }));
       }, 2000);
@@ -320,7 +297,7 @@ const PoolsInterface: React.FC = () => {
         abi: ABI.abi,
         functionName: "joinPool",
         args: [BigInt(poolId)],
-        //@ts-ignore
+       
         value: entryFee,
         gas: BigInt(300000),
       });
@@ -335,7 +312,7 @@ const PoolsInterface: React.FC = () => {
     setSelectedPool(pool);
     setIsModalOpen(true);
 
-    //@ts-ignore
+  
     const stakeText = pool.stake?.replace("$", "") || "0";
     setStakeAmount(parseInt(stakeText, 10) || 0);
   };
