@@ -56,13 +56,26 @@ const RenderMyPoolsTab = () => {
     abi: ABI.abi,
     eventName: "PlayerJoined",
     onLogs: (logs) => {
-      fetchPools();
+      logs.forEach((log) => {
+        const poolId = Number(log.args.poolId);
+
+        setSelectedPool((prevPools) =>
+          prevPools.map((pool) =>
+            pool.id === poolId
+              ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
+              : pool
+          )
+        );
+      });
     },
   });
 
   const handlePlay = (pools: PoolInterface) => {
-    if (pools.poolStatus !== 1 || pools.currentParticipants !== pools.maxParticipants) {
-      return; 
+    if (
+      pools.poolStatus !== 1 ||
+      pools.currentParticipants !== pools.maxParticipants
+    ) {
+      return;
     }
     navigate("/playgame", { state: { pools } });
   };
