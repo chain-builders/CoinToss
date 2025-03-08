@@ -37,7 +37,7 @@ const PoolsInterface: React.FC = () => {
   const [participants, setParticipants] = useState<`0x${string}`[]>([]);
   const [prizeAmountClaimed, setPrizeAmoutClaimed] = useState<number>(0);
 
-  const {setPoints}=useContext(MyContext)
+  const { setPoints } = useContext(MyContext);
 
   const {
     writeContract,
@@ -84,6 +84,15 @@ const PoolsInterface: React.FC = () => {
         // Update UI
         setParticipants((prev) => [...prev, player]);
 
+        // Update the currentParticipants count for the joined pool
+        setNewPools((prevPools) =>
+          prevPools.map((pool) =>
+            pool.id === Number(poolId)
+              ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
+              : pool
+          )
+        );
+
         toast.custom(
           <div className="flex items-center bg-gradient-to-r from-green-500 to-emerald-600 p-3 rounded-lg shadow-lg">
             <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
@@ -116,17 +125,6 @@ const PoolsInterface: React.FC = () => {
             [Number(poolId)]: false,
           }));
         }, 2000);
-
-        // If this is the selected pool, update its current participants count
-        if (selectedPool && Number(poolId) === selectedPool.id) {
-          setNewPools((prevPools) =>
-            prevPools.map((pool) =>
-              pool.id === Number(poolId)
-                ? { ...pool, currentParticipants: pool.currentParticipants + 1 }
-                : pool
-            )
-          );
-        }
       });
     },
   });
@@ -136,7 +134,6 @@ const PoolsInterface: React.FC = () => {
     abi: ABI.abi,
     eventName: "PointsAwarded",
     onLogs: (logs) => {
-
       logs.forEach((log) => {
         if (!log.args || typeof log.args !== "object") {
           return;
@@ -154,7 +151,7 @@ const PoolsInterface: React.FC = () => {
         if (points === undefined || points < 0n) {
           return;
         }
-        setPoints(Number(points))
+        setPoints(Number(points));
         const actionType =
           log.args.reason !== undefined ? Number(log.args.reason) : undefined;
         if (actionType === undefined || ![1, 2, 3].includes(actionType)) {
@@ -222,14 +219,12 @@ const PoolsInterface: React.FC = () => {
     }
   }, [allPools]);
 
-  
   const {
     isLoading: isConfirming,
     isSuccess: isConfirmed,
     error: txError,
   } = useWaitForTransactionReceipt({ hash });
 
-  
   const { data: userJoinedPoolIds } = useReadContract({
     address: CORE_CONTRACT_ADDRESS,
     abi: ABI.abi,
@@ -308,7 +303,7 @@ const PoolsInterface: React.FC = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedPool(null); 
+    setSelectedPool(null);
     setIsStaking(false);
   };
   const handleStake = async () => {
@@ -346,10 +341,10 @@ const PoolsInterface: React.FC = () => {
       (pools.currentParticipants / pools.maxParticipants) * 100
     );
   };
- 
 
-  const avalablePools= newPools.filter((pool) => pool.poolStatus === 0 && !joinedPools.includes(pool.id))
-  
+  const avalablePools = newPools.filter(
+    (pool) => pool.poolStatus === 0 && !joinedPools.includes(pool.id)
+  );
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -362,7 +357,8 @@ const PoolsInterface: React.FC = () => {
         </div>
         <div className="flex space-x-4 text-sm">
           <div className="text-gray-400">
-            Games Today: <span className="text-white">{avalablePools.length}</span>
+            Games Today:{" "}
+            <span className="text-white">{avalablePools.length}</span>
           </div>
           <div className="text-gray-400">
             Winners Today: <span className="text-yellow-400">158</span>
@@ -409,91 +405,89 @@ const PoolsInterface: React.FC = () => {
         <h2 className="text-xl font-bold mb-4">Available Pools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {avalablePools.map((pool) => (
-              <motion.div
-                key={pool.id}
-                className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
-                  selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
-                } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
-                  showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
-                }`}
-                onClick={() => handlePoolSelect(pool)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                animate={
-                  showPulse[pool.id]
-                    ? {
-                        boxShadow: [
-                          "0 0 0 rgba(59, 130, 246, 0)",
-                          "0 0 15px rgba(59, 130, 246, 0.7)",
-                          "0 0 0 rgba(59, 130, 246, 0)",
-                        ],
-                      }
-                    : {}
-                }
-                transition={{ duration: 0.5 }}
-              >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold flex items-center">
-                    {setPoolNames(pool.id)}
-                    {pool.poolStatus === 1 && (
-                      <span className="ml-2 text-yellow-400">✨</span>
-                    )}
-                  </h3>
-                  <span
-                    className={`text-sm font-medium ${getStatusColor(
-                      pool.poolStatus
-                    )}`}
-                  >
-                    {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
-                  </span>
-                </div>
+            <motion.div
+              key={pool.id}
+              className={`border bg-gradient-to-r from-gray-900 to-yellow-900 bg-opacity-20 border-yellow-900  rounded-lg p-4 bg-gray-900 hover:bg-gray-800 cursor-pointer transition-all ${
+                selectedPool?.id === pool.id ? "ring-2 ring-purple-500" : ""
+              } ${pool.poolStatus === 1 ? "border-yellow-600" : ""} ${
+                showPulse[pool.id] ? "ring-2 ring-blue-500" : ""
+              }`}
+              onClick={() => handlePoolSelect(pool)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              animate={
+                showPulse[pool.id]
+                  ? {
+                      boxShadow: [
+                        "0 0 0 rgba(59, 130, 246, 0)",
+                        "0 0 15px rgba(59, 130, 246, 0.7)",
+                        "0 0 0 rgba(59, 130, 246, 0)",
+                      ],
+                    }
+                  : {}
+              }
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold flex items-center">
+                  {setPoolNames(pool.id)}
+                  {pool.poolStatus === 1 && (
+                    <span className="ml-2 text-yellow-400">✨</span>
+                  )}
+                </h3>
+                <span
+                  className={`text-sm font-medium ${getStatusColor(
+                    pool.poolStatus
+                  )}`}
+                >
+                  {pool.poolStatus === 1 ? "Filling" : "Starting Soon"}
+                </span>
+              </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <Coins size={16} className="text-gray-400" />
-                    <div>
-                      <p className="text-gray-400 text-xs">Stake</p>
-                      <p className="font-medium text-white">
-                        {formatFigures(pool.entryFee.toString())}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Users size={16} className="text-gray-400" />
-                    <div>
-                      <p className="text-gray-400 text-xs">Players</p>
-                      <p className="font-medium text-white">
-                        {pool.currentParticipants}/{pool.maxParticipants}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Trophy size={16} className="text-gray-400" />
-                    <div>
-                      <p className="text-gray-400 text-xs">Pool Prize</p>
-                      <p className="font-medium text-white">
-                        {formatFigures(pool.prizePool.toString())}
-                      </p>
-                    </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Coins size={16} className="text-gray-400" />
+                  <div>
+                    <p className="text-gray-400 text-xs">Stake</p>
+                    <p className="font-medium text-white">
+                      {formatFigures(pool.entryFee.toString())}
+                    </p>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Users size={16} className="text-gray-400" />
+                  <div>
+                    <p className="text-gray-400 text-xs">Players</p>
+                    <p className="font-medium text-white">
+                      {pool.currentParticipants}/{pool.maxParticipants}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Trophy size={16} className="text-gray-400" />
+                  <div>
+                    <p className="text-gray-400 text-xs">Pool Prize</p>
+                    <p className="font-medium text-white">
+                      {formatFigures(pool.prizePool.toString())}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                {/* Progress bar for pool filling status */}
-                <div className="mt-3">
-                  <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${
-                        pool.poolStatus === 1
-                          ? "bg-yellow-500"
-                          : "bg-yellow-500"
-                      }`}
-                      style={{ width: `${getProgressPercentage(pool)}%` }}
-                    />{" "}
-                    <p className="text-gray-400">Stake</p>
-                  </div>
+              {/* Progress bar for pool filling status */}
+              <div className="mt-3">
+                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${
+                      pool.poolStatus === 1 ? "bg-yellow-500" : "bg-yellow-500"
+                    }`}
+                    style={{ width: `${getProgressPercentage(pool)}%` }}
+                  />{" "}
+                  <p className="text-gray-400">Stake</p>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
 
