@@ -1,27 +1,68 @@
+import { useState, useEffect,  useRef } from "react";
+import Footer from "../components/Footer";
+import  {formatTime} from "../utils/utilFunction"
 const HeroPage = () => {
+  const [time, setTimer]=useState(0)
+  const [timeRemaining, setTimeRemaining] = useState(222);
+  const [isRunning, setIsRunning] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+
+
+  const startTimer = () => {
+    intervalRef.current = setInterval(() => {
+      setTimeRemaining((prevTime) => {
+        if (prevTime <= 0) {
+          return 223; // Restart the timer at 3:43
+        }
+        return prevTime - 1; // Decrement the timer by 1 second
+      });
+    }, 1000); // Update every second
+  };
+
+  useEffect(() => {
+    startTimer();
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+
+
+
+
+
   return (
     <>
       <section className="relative md:h-[35rem] flex items-center overflow-hidden">
         {/* Rich Dark Background with Gold Accents */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black"></div>
-          
+
           <div className="absolute inset-0 opacity-10 bg-pattern-dark"></div>
-          
+
           <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900"></div>
-          
+
           <div className="absolute inset-0">
             <div className="golden-particles"></div>
           </div>
         </div>
 
-        
         <div className="absolute inset-0 z-1 overflow-hidden">
           <div className="absolute top-0 left-1/4 w-64 h-64 rounded-full bg-yellow-500 blur-3xl opacity-10 animate-pulse-slow"></div>
           <div className="absolute bottom-0 right-1/3 w-96 h-96 rounded-full bg-red-600 blur-3xl opacity-5 animate-pulse-slow"></div>
         </div>
 
-       
         <div className="container mx-auto z-10 flex flex-col md:flex-row items-center justify-between px-6">
           {/* Left Column - Compelling Text Content */}
           <div className="md:w-5/12 space-y-6 text-center md:text-left">
@@ -31,35 +72,28 @@ const HeroPage = () => {
             </h2>
 
             <p className="text-xl text-gray-300">
-              A high-stakes game where{" "}
+              A strategy game where you win by choosing what most people don't.
               <span className="font-bold text-red-500">
-                going against the crowd
-              </span>{" "}
-              earns you more point.
+                {" "}
+                If 70% pick "Heads", the 30% who picked "Tails" win all the
+                rewards
+              </span>
+              . The fewer people who make your choice, the bigger your prize.
             </p>
 
-            {/* Game Mechanic with Casino-Style Callout */}
-            <div className="mt-4 inline-block">
-              <div className="px-5 py-3 rounded-lg border border-yellow-600 bg-black bg-opacity-80 shadow-glow-gold">
-                <span className="text-gray-200 text-lg">
-                  When everyone zigs,{" "}
-                  <span className="text-yellow-500 font-bold">you zag</span> and{" "}
-                  <span className="text-red-500 font-bold">win big</span>
-                </span>
-              </div>
-            </div>
+          
 
             {/* Win Metrics - Creating FOMO */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg border border-gray-800">
                 <div className="text-2xl font-bold text-yellow-500 animate-pulse-slow">
-                  $48,291
+                  2,000 Core
                 </div>
-                <div className="text-xs text-gray-400">LAST JACKPOT</div>
+                <div className="text-xs text-gray-400">WON IN LAST POOL </div>
               </div>
               <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg border border-gray-800">
-                <div className="text-2xl font-bold text-yellow-500">3:42</div>
-                <div className="text-xs text-gray-400">NEXT ROUND</div>
+                <div className="text-2xl font-bold text-yellow-500">{formatTime(timeRemaining)}</div>
+                <div className="text-xs text-gray-400">NEXT POOL STARTS IN</div>
               </div>
             </div>
 
@@ -71,8 +105,8 @@ const HeroPage = () => {
           </div>
 
           {/* Right Column - Casino-Style Game Visualization */}
-          <div className="mt-12 md:mt-0 md:w-6/12">
-            <div className="relative">
+          <div className="mt-12 md:mt-0 md:w-6/12 ">
+            <div className="relative  ">
               {/* Luxury Glow Effect */}
               <div className="absolute -inset-4 rounded-xl bg-gradient-to-r from-yellow-500 via-red-500 to-yellow-500 opacity-20 blur-xl animate-pulse-slow"></div>
 
@@ -92,7 +126,9 @@ const HeroPage = () => {
                     {/* Winning Choice (Minority) */}
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br  from-green-600 to-green-800 flex items-center justify-center border-2 border-green-400 shadow-glow-red z-20 animate-pulse">
-                        <span className="text-white font-bold text-xl">Tail</span>
+                        <span className="text-white font-bold text-xl">
+                          Tail
+                        </span>
                       </div>
                       <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black border border-yellow-500 flex items-center justify-center z-30">
                         <span className="text-yellow-500 font-bold text-xs">
@@ -110,7 +146,9 @@ const HeroPage = () => {
                     {/* Losing Choice (Majority) */}
                     <div className="relative opacity-60">
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br  from-red-600 to-red-700 flex items-center justify-center border-2 border-gray-700">
-                        <span className="text-white font-bold text-xl">Head</span>
+                        <span className="text-white font-bold text-xl">
+                          Head
+                        </span>
                       </div>
                       <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black border border-gray-500 flex items-center justify-center">
                         <span className="text-gray-300 font-bold text-xs">
@@ -168,6 +206,7 @@ const HeroPage = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </>
   );
 };

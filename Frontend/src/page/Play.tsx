@@ -16,7 +16,7 @@ enum PlayerChoice {
   HEADS = 1,
   TAILS = 2,
 }
-type PlayerStatus = [boolean, boolean, boolean, boolean];
+
 const PlayGame = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,7 +28,7 @@ const PlayGame = () => {
     null
   );
   const [round, setRound] = useState(1);
-  const [timer, setTimer] = useState(20); // Timer starts immediately
+  const [timer, setTimer] = useState(20);
   const [isEliminated, setIsEliminated] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
@@ -41,24 +41,27 @@ const PlayGame = () => {
     subMessage: "",
   });
   const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
-  const [isWinner, setIsWinner] = useState(false); // Track if the player is a winner
-  const [showWinnerPopup, setShowWinnerPopup] = useState(false); // Control winner pop-up visibi
+  const [_isWinner, setIsWinner] = useState(false);
+  const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+  type PlayerStatus = [boolean, boolean, boolean, boolean];
 
   // Fetch player status
+
   const {
     data: playerStatus,
     refetch: refetchPlayerStatus,
     isLoading: isStatusLoading,
-  } = useReadContract<PlayerStatus>({
+  } = useReadContract<PlayerStatus, string, [bigint, `0x${string}`]>({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-    abi: CoinTossABI.abi,
+    abi: CoinTossABI.abi, 
     functionName: "getPlayerStatus",
     args: [BigInt(pool.id), address],
   });
+
   console.log(playerStatus);
 
-  const isEliminatedStatus = playerStatus ? playerStatus[1] : false; // Check if player is eliminated
-  const isWinnerStatus = playerStatus ? playerStatus[2] : false; // Check if player is a winner
+  const isEliminatedStatus = playerStatus ? playerStatus[1] : false;
+  const isWinnerStatus = playerStatus ? playerStatus[2] : false;
   const hasClaimed = playerStatus ? playerStatus[3] : false;
 
   // Send transaction
@@ -117,7 +120,8 @@ const PlayGame = () => {
     receiptError,
     isConfirmed,
   ]);
-
+ 
+  // when the 
   useEffect(() => {
     if (
       !pool ||
@@ -128,8 +132,6 @@ const PlayGame = () => {
       navigate("/explore");
     }
   }, [pool, hasClaimed, navigate]);
-
-  console.log(pool);
 
   // Handle player elimination
   useEffect(() => {
@@ -146,19 +148,21 @@ const PlayGame = () => {
       }, 3000);
     }
   }, [isEliminatedStatus]);
+
+
   // Handle player winning the game
   useEffect(() => {
     if (isWinnerStatus && pool?.status === 2) {
       setIsWinner(true);
-      setShowWinnerPopup(true); // Show winner pop-up
+      setShowWinnerPopup(true);
     }
   }, [isWinnerStatus, pool]);
 
   // Handle player choice submission
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; // Prevent reselection
+    if (!isTimerActive || timer <= 3 || isEliminated || hasSubmitted) return; 
     setSelectedChoice(selected);
-    setHasSubmitted(true); // Mark as submitted
+    setHasSubmitted(true);
     startCoinAnimation();
     await handleSubmit(selected);
   };
@@ -181,7 +185,7 @@ const PlayGame = () => {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
       setIsSubmitting(false);
-      stopCoinAnimation(); // Stop animation on failure
+      stopCoinAnimation();
     }
   };
 
@@ -192,6 +196,8 @@ const PlayGame = () => {
       setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
       setIsWaitingForOthers(true);
+      setIsTimerActive(false);
+      setTimer(0)
     }
 
     if (writeError || receiptError) {
@@ -205,73 +211,6 @@ const PlayGame = () => {
   }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
-  // useWatchContractEvent({
-  //   address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-  //   abi: CoinTossABI.abi,
-  //   eventName: "RoundCompleted",
-  //   onLogs: (logs) => {
-  //     console.log("RoundCompleted logs received:", logs);
-
-  //     for (const log of logs) {
-  //       try {
-  //         console.log("Processing log:", log);
-
-          
-  //         let poolId, roundNumber, winningSelection;
-
-  //         if (log.args) {
-            
-  //           poolId = BigInt(log.args[0] || log.args.poolId);
-  //           roundNumber = BigInt(log.args[1] || log.args.round);
-  //           winningSelection = BigInt(log.args[2] || log.args.winningSelection);
-  //         } else {
-           
-  //           poolId = BigInt(log.topics[1]);
-  //           const data = log.data;
-  //           console.log("Event data:", data);
-  //           roundNumber = BigInt(0);
-  //           winningSelection = BigInt(0);
-  //         }
-
-  //         console.log("Extracted values:", {
-  //           poolId: poolId.toString(),
-  //           roundNumber: roundNumber.toString(),
-  //           winningSelection: winningSelection.toString(),
-  //         });
-
-  //         if (poolId === BigInt(pool.id)) {
-  //           console.log("Pool ID matched!");
-  //           stopCoinAnimation();
-  //           refetchPlayerStatus();
-
-  //           const userSurvived = selectedChoice === Number(winningSelection);
-  //           console.log("User survived?", userSurvived);
-
-  //           showNotification(
-  //             userSurvived,
-  //             `Round ${roundNumber} Completed!`,
-  //             userSurvived
-  //               ? "You advanced to the next round!"
-  //               : "You were eliminated!"
-  //           );
-
-  //           setTimeout(() => {
-  //             if (userSurvived) {
-  //               setRound(Number(roundNumber) + 1);
-  //               setTimer(20);
-  //               setIsTimerActive(true);
-  //               setHasSubmitted(false);
-  //             } else {
-  //               navigate("/explore");
-  //             }
-  //           }, 3000);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error processing event log:", error);
-  //       }
-  //     }
-  //   },
-  // });
 
   useWatchContractEvent({
     address: CORE_CONTRACT_ADDRESS as `0x${string}`,
@@ -279,78 +218,50 @@ const PlayGame = () => {
     eventName: "RoundCompleted",
     onLogs: (logs) => {
       console.log("RoundCompleted logs received:", logs);
-  
       for (const log of logs) {
         try {
           console.log("Processing log:", log);
-          console.log("Log args:", log.args);
-  
-          // More robust extraction of arguments
-          if (!log.args) {
-            console.error("No args in the event log");
-            continue;
-          }
-          
-          // Create variables to hold the extracted values
           let poolId, roundNumber, winningSelection;
-          
-         
-          if (typeof log.args.poolId !== 'undefined') {
-            // Named parameters
-            poolId = log.args.poolId;
-            roundNumber = log.args.round;
-            winningSelection = log.args.winningSelection;
-          } else if (Array.isArray(log.args) || Object.keys(log.args).includes('0')) {
-            // Array-like structure
-            poolId = log.args[0];
-            roundNumber = log.args[1];
-            winningSelection = log.args[2];
+
+          if (log.args) {
+            poolId = BigInt(log.args[0] || log.args.poolId);
+            roundNumber = BigInt(log.args[1] || log.args.round);
+            winningSelection = BigInt(log.args[2] || log.args.winningSelection);
           } else {
-            console.error("Unexpected args structure:", log.args);
-            continue;
+            poolId = BigInt(log.topics[1]);
+            const data = log.data;
+            console.log("Event data:", data);
+            roundNumber = BigInt(0);
+            winningSelection = BigInt(0);
           }
-  
-          // Ensure all values exist
-          if (poolId === undefined || roundNumber === undefined || winningSelection === undefined) {
-            console.error("Missing required values in event args");
-            continue;
-          }
-  
-          // Convert to appropriate types
-          const poolIdBN = BigInt(poolId);
-          const roundNumberBN = BigInt(roundNumber);
-          const winningSelectionBN = BigInt(winningSelection);
-  
+
           console.log("Extracted values:", {
-            poolId: poolIdBN.toString(),
-            roundNumber: roundNumberBN.toString(),
-            winningSelection: winningSelectionBN.toString(),
+            poolId: poolId.toString(),
+            roundNumber: roundNumber.toString(),
+            winningSelection: winningSelection.toString(),
           });
-  
-          // Compare as numbers to avoid type issues
-          if (Number(poolIdBN) === pool.id) {
+
+          if (poolId === BigInt(pool.id)) {
             console.log("Pool ID matched!");
             stopCoinAnimation();
             refetchPlayerStatus();
-  
-            const userSurvived = selectedChoice === Number(winningSelectionBN);
-            console.log("User survived?", userSurvived);
-  
+
+            const userSurvived = selectedChoice === Number(winningSelection);
+
             showNotification(
               userSurvived,
-              `Round ${roundNumberBN} Completed!`,
+              `Round ${roundNumber} Completed!`,
               userSurvived
                 ? "You advanced to the next round!"
                 : "You were eliminated!"
             );
-  
+
             setTimeout(() => {
               if (userSurvived) {
-                setRound(Number(roundNumberBN) + 1);
+                setRound(Number(roundNumber) + 1);
                 setTimer(20);
                 setIsTimerActive(true);
                 setHasSubmitted(false);
-                setSelectedChoice(null); // Reset choice for next round
               } else {
                 navigate("/explore");
               }
@@ -358,13 +269,11 @@ const PlayGame = () => {
           }
         } catch (error) {
           console.error("Error processing event log:", error);
-          console.error("Error details:", error instanceof Error ? error.message : String(error));
-          console.error("Log that caused error:", log);
         }
       }
     },
   });
- 
+
   // Start/stop coin animation
   const startCoinAnimation = () => {
     setIsCoinFlipping(true);
@@ -401,14 +310,15 @@ const PlayGame = () => {
   useEffect(() => {
     if (isWinnerStatus) {
       setIsWinner(true);
-      setShowWinnerPopup(true); 
+      setShowWinnerPopup(true);
     }
   }, [isWinnerStatus]);
+
   // Handle token claim
   const handleClaimPrize = async () => {
     try {
       setIsSubmitting(true);
-      await writeContract({
+      writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
         functionName: "claimPrize",
@@ -428,30 +338,35 @@ const PlayGame = () => {
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
       {/* Top Game Status Bar */}
-      <div className="w-full max-w-4xl px-4">
+      <div className="w-full max-w-4xl px-2">
         <div className="flex justify-between items-center bg-black bg-opacity-70 px-6 py-3 rounded-lg border border-gray-800 mb-8">
           <div className="flex items-center">
             <div className="bg-yellow-600 w-10 h-10 rounded-full flex items-center justify-center border border-yellow-500 mr-3">
               <span className="text-white font-bold">{round}</span>
             </div>
-            <div>
+            <div className="flex flex-col items-center">
               <div className="text-gray-400 text-xs">ROUND</div>
-              <div className="text-white font-bold text-center">{round}</div>
+              <div className="text-2xl font-bold text-yellow-500">{round}</div>
             </div>
           </div>
 
           <div className="text-center">
             <div className="text-xs text-gray-400">REMAINING PLAYERS</div>
             <div className="text-2xl font-bold text-yellow-500">
-              {pool.remainingPlayers}
+              {pool.currentParticipants}
             </div>
           </div>
 
           <div className="text-right">
-            <div className="text-xs text-gray-400">POTENTIAL REWARD</div>
+            <div className="flex flex-row items-center">
+              <span className="text-xs hidden md:flex flex-row mr-2 text-gray-400">
+                POTENTIAL
+              </span>
+              <span className="text-xs text-gray-400"> REWARD</span>
+            </div>
+
             <div className="text-2xl font-bold text-yellow-500 animate-pulse-slow">
-              +{Math.floor(pool.remainingPlayers * 0.8)}{" "}
-              <span className="text-xs">Points</span>
+              +120 <span className="text-xs">Points</span>
             </div>
           </div>
         </div>
