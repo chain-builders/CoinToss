@@ -1,9 +1,7 @@
 import {motion,  AnimatePresence } from "framer-motion";
 import {useAccount,useBalance} from "wagmi";
 import {formatFigures} from "../utils/convertion"
-
 import {PoolInterface} from '../utils/Interfaces'
-import {AlertTriangle,} from "lucide-react";
 
 interface SelectedPoolDetailsProps {
   isModalOpen: boolean; 
@@ -60,15 +58,6 @@ const SelectedPoolDetails = ({isModalOpen,selectedPool,closeModal, isStaking, ha
                 {balanceData?.formatted} {balanceData?.symbol}
               </p>
             </div>
-          </div>
-          <div className="p-3 bg-gray-800 rounded-lg mb-4 flex items-center">
-            <AlertTriangle size={18} className="text-yellow-400 mr-2" />
-            <p className="text-sm">
-              Only{" "}
-              {selectedPool.maxParticipants -
-                selectedPool.currentParticipants}{" "}
-              spots remaining! Game starts in {selectedPool.timeLeft}
-            </p>
           </div>
           <button
             className={`w-full py-3 rounded-lg font-bold text-center ${

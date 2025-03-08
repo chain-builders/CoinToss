@@ -16,6 +16,8 @@ const { isConnected } = useAccount();
 const handleCreatePool = () => {
     writeContract({
       address: "0x6D66Ea6D0D857BC629d038D0098E1f0d9eD313E9",
+
+      // @ts-ignore
       abi: contractABI.abi,
       functionName: "createPool",
       args: [1, 3],
