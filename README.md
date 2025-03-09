@@ -125,21 +125,10 @@ function claimWinnings(uint256 poolId) external;
 ---
 ## Demo Video
 
-[Watch the demo](https://www.loom.com/share/a30e0e54fbde489d881cee92266c5507)
+[Watch the demo](https://www.loom.com/share/e26754cf31d64aaca7ff7ceabd411bd7)
 ---
 
 ## **Contributions**
 We welcome community contributions! Feel free to **submit issues, pull requests, or suggestions** for improving TheOnePercent.
----
-## For any questions, feel free to reach out to the development team. 
-**Connect With Us**
 
-| Role           | Twitter Handle |
-|---------------|------------------------------------------------|
-| Project Account | [@ProjectTwitter](https://twitter.com/ProjectTwitter) |
-| Team Lead      | [@TeamLeadTwitter](https://twitter.com/TeamLeadTwitter) |
-| Member 1       | [@Member1Twitter](https://twitter.com/Member1Twitter) |
-| Member 2       | [@Member2Twitter](https://twitter.com/Member2Twitter) |
-| Member 3       | [@Member3Twitter](https://twitter.com/Member3Twitter) |
-| Member 4       | [@Member4Twitter](https://twitter.com/Member4Twitter) |
 
