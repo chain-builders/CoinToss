@@ -10,6 +10,8 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+import { useContractInteraction } from "../hooks/ContractWriteIn";
+import {usePlayerStatus} from "../hooks/ContractReadIn";
 enum PlayerChoice {
   NONE = 0,
   HEADS = 1,
@@ -35,7 +37,7 @@ const PlayGame = () => {
     showWinnerPopup: false,
   });
 
-  const [timer, setTimer] = useState(20);
+  const [timer, setTimer] = useState(31);
   const [notification, setNotification] = useState({
     isVisible: false,
     isSuccess: false,
@@ -45,43 +47,15 @@ const PlayGame = () => {
   const [lastCompletedRound, setLastCompletedRound] = useState(0);
   const [isWinner, setIsWinner] = useState(false);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+  const { makeSelection, claimPrize, isPending, isConfirming, isConfirmed, error } = useContractInteraction();
 
+  const{ playerStatus, refetchPlayerStatus, isStatusLoading}=usePlayerStatus(pool.id, address as `0x${string}` );
 
   type PlayerStatus = [boolean, boolean, boolean, boolean];
 
+  // Fetch player status
 
   // _____________________________Fetch Player Status____________________________________
-
-  const {
-    data: playerStatus,
-    refetch: refetchPlayerStatus,
-    isLoading: isStatusLoading,
-  } = useReadContract<PlayerStatus, string, [bigint, `0x${string}`]>({
-    address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-    abi: CoinTossABI.abi,
-    functionName: "getPlayerStatus",
-    args: [BigInt(pool.id), address],
-  });
-
-  
-  //___________________________Sending Transaction____________________________________
-  
-    const {
-      writeContract,
-      data: hash,
-      isPending: isWritePending,
-      error
-    } = useWriteContract();
-  
-    //__________________________ Wait for transaction confirmation________________________________________
-  
-    const {
-      isLoading: isConfirming,
-      isSuccess: isConfirmed,
-      error: receiptError,
-    } = useWaitForTransactionReceipt({ hash });
-  
-  
 
   
 
@@ -108,13 +82,13 @@ const PlayGame = () => {
       return () => clearInterval(interval);
     } else if (timer === 0) {
       setGameState((prev) => ({ ...prev, isTimerActive: false }));
-      if (isConfirming) {
+      if (isPending || isConfirming) {
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
-      } else if (receiptError) {
+      } else if (error) {
         showNotification(
           false,
           "Transaction Failed",
@@ -133,12 +107,14 @@ const PlayGame = () => {
     gameState.isTimerActive,
     timer,
     gameState.isWaitingForOthers,
-    isConfirming,
+    isPending,
     isConfirmed,
-    receiptError
+    error
   ]);
 
   //__________________________ Redirect Conditions________________________________
+
+
   useEffect(() => {
     // Check if we should redirect based on different conditions
     if (!pool) {
@@ -174,13 +150,23 @@ const PlayGame = () => {
     }
   }, [pool, hasClaimed, navigate, refetchPlayerStatus]);
 
+
+
+
+
+
+
   //____________________________ Handle player elimination_____________________________________________
 
   useEffect(() => {
     if (playerStatus) {
      
+      const isPlayerEliminated = playerStatus[1];
+      const isPlayerWinner = playerStatus[2];
+      const hasPlayerClaimed = playerStatus[3];
+
       // Update elimination status
-      if (isParticipant && isEliminatedStatus) {
+      if (isPlayerEliminated && gameState.isEliminated) {
         setGameState((prev) => ({ ...prev, isEliminated: true, isTimerActive: false }));
         showNotification(
           false,
@@ -194,13 +180,13 @@ const PlayGame = () => {
 
       // Update winner status
 
-      if (isParticipant && isWinnerStatus) {
+      if (isPlayerWinner && !isWinner) {
         setIsWinner(true);
         setShowWinnerPopup(true);
       }
 
-      
-      if (isEliminatedStatus && gameState.hasSubmitted && isWinnerStatus) {
+      // Handle claimed status
+      if (hasPlayerClaimed && isPlayerWinner) {
         navigate("/explore");
       }
 
@@ -239,12 +225,9 @@ const PlayGame = () => {
     startCoinAnimation()
     await handleSubmit(selected);
   };
-
-
   // ____________submitting the choice_____________________
 
-
- const handleSubmit = async (selected: PlayerChoice) => {
+  const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
@@ -252,20 +235,14 @@ const PlayGame = () => {
 
     try {
       setGameState((prev) => ({ ...prev, isSubmitting: true }));
-      writeContract({
-        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CoinTossABI.abi,
-        functionName: "makeSelection",
-        args: [BigInt(pool.id), selected],
-      });
+      makeSelection(BigInt(pool.id), selected);
     } catch (err: any) {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
       setGameState((prev) => ({ ...prev, isSubmitting: false }));
-      stopCoinAnimation();
+      stopCoinAnimation()
     }
   };
-
 
   // Handle transaction confirmation
   useEffect(() => {
@@ -278,11 +255,11 @@ const PlayGame = () => {
       showNotification(true, "Success!", "Your selection has been recorded!");
     }
   
-    if (receiptError) {
+    if (error) {
       setGameState((prev) => ({ ...prev, isSubmitting: false }));
       showNotification(false, "Transaction Failed", "Your transaction failed to process.");
     }
-  }, [isConfirmed, receiptError]);
+  }, [isConfirmed, error]);
 
   // Handle RoundCompleted event
 
@@ -518,28 +495,20 @@ const PlayGame = () => {
   }, [isWinnerStatus]);
 
   // Handle token claim
-
-    // Handle token claim
-    const handleClaimPrize = async () => {
-      try {
-        setGameState((prev) => ({ ...prev, isSubmitting: true }));
-        writeContract({
-          address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-          abi: CoinTossABI.abi,
-          functionName: "claimPrize",
-          args: [BigInt(pool.id)],
-        });
-        showNotification(true, "Success!", "Your prize has been claimed!");
-        setShowWinnerPopup(false);
-        navigate("/explore");
-      } catch (err: any) {
-        const errorMessage = err.message || "Transaction failed";
-        showNotification(false, "Transaction Error", errorMessage);
-      } finally {
-        setGameState((prev) => ({ ...prev, isSubmitting: false }));
-      }
-    };
-
+  const handleClaimPrize = async () => {
+    try {
+      setGameState((prev) => ({ ...prev, isSubmitting: true }));
+      await claimPrize(BigInt(pool.id));
+      showNotification(true, "Success!", "Your prize has been claimed!");
+      setShowWinnerPopup(false);
+      navigate("/explore");
+    } catch (err: any) {
+      const errorMessage = err.message || "Transaction failed";
+      showNotification(false, "Transaction Error", errorMessage);
+    } finally {
+      setGameState((prev) => ({ ...prev, isSubmitting: false }));
+    }
+  };
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">

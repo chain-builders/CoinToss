@@ -10,6 +10,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import CoinTossABI from "../utils/contract/CoinToss.json";
 import { CORE_CONTRACT_ADDRESS } from "../utils/contract/contract";
+
 enum PlayerChoice {
   NONE = 0,
   HEADS = 1,
@@ -17,38 +18,41 @@ enum PlayerChoice {
 }
 
 const PlayGame = () => {
-  const [coinRotation, setCoinRotation] = useState(0);
+
   const navigate = useNavigate();
   const location = useLocation();
   const pool = location.state.pools;
   const { address } = useAccount();
-  const [gameState, setGameState] = useState({
-    isTimerActive: true,
-    selectedChoice: null as PlayerChoice | null,
-    round: 1,
-    isEliminated: false,
-    hasSubmitted: false,
-    isCoinFlipping: false,
-    isSubmitting: false,
-    isWaitingForOthers: false,
-    showClaimInterface: false,
-    showWinnerPopup: false,
-  });
 
-  const [timer, setTimer] = useState(20);
+  const [isTimerActive, setIsTimerActive] = useState(true);
+  const [selectedChoice, setSelectedChoice] = useState<PlayerChoice | null>(
+    null
+  );
+  
+  const [round, setRound] = useState(1);
+  const [timer, setTimer] = useState(31);
+  const [isEliminated, setIsEliminated] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isCoinFlipping, setIsCoinFlipping] = useState(false);
+  const [coinRotation, setCoinRotation] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     isSuccess: false,
     message: "",
     subMessage: "",
   });
-  const [lastCompletedRound, setLastCompletedRound] = useState(0);
-  const [isWinner, setIsWinner] = useState(false);
-  const [showWinnerPopup, setShowWinnerPopup] = useState(false);
 
+  const [lastCompletedRound, setLastCompletedRound] = useState(0);
+  const [isWaitingForOthers, setIsWaitingForOthers] = useState(false);
+  const [showClaimInterface, setShowClaimInterface] = useState(false);
 
   type PlayerStatus = [boolean, boolean, boolean, boolean];
 
+  // Fetch player status
+
+  const [isWinner, setIsWinner] = useState(false);
+  const [showWinnerPopup, setShowWinnerPopup] = useState(false);
 
   // _____________________________Fetch Player Status____________________________________
 
@@ -63,28 +67,6 @@ const PlayGame = () => {
     args: [BigInt(pool.id), address],
   });
 
-  
-  //___________________________Sending Transaction____________________________________
-  
-    const {
-      writeContract,
-      data: hash,
-      isPending: isWritePending,
-      error
-    } = useWriteContract();
-  
-    //__________________________ Wait for transaction confirmation________________________________________
-  
-    const {
-      isLoading: isConfirming,
-      isSuccess: isConfirmed,
-      error: receiptError,
-    } = useWaitForTransactionReceipt({ hash });
-  
-  
-
-  
-
   console.log(playerStatus);
   console.log(pool)
 
@@ -96,25 +78,42 @@ const PlayGame = () => {
   const hasClaimed = playerStatus ? playerStatus[3] : false;
 
 
+//___________________________Sending Transaction____________________________________
+
+  const {
+    writeContract,
+    data: hash,
+    isPending: isWritePending,
+    error: writeError,
+  } = useWriteContract();
+
+  //__________________________ Wait for transaction confirmation________________________________________
+
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    error: receiptError,
+  } = useWaitForTransactionReceipt({ hash });
+
   const coinFlipInterval = useRef<NodeJS.Timeout | null>(null);
 
   //___________________ Handle timer logic________________________________
 
   useEffect(() => {
-    if (gameState.isTimerActive && timer > 0) {
+    if (isTimerActive && timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => prevTimer - 1);
       }, 2000);
       return () => clearInterval(interval);
     } else if (timer === 0) {
-      setGameState((prev) => ({ ...prev, isTimerActive: false }));
-      if (isConfirming) {
+      setIsTimerActive(false);
+      if (isWritePending || isConfirming) {
         showNotification(
           true,
           "Processing...",
           "Your choice has been submitted and is being processed"
         );
-      } else if (receiptError) {
+      } else if (writeError || receiptError) {
         showNotification(
           false,
           "Transaction Failed",
@@ -126,19 +125,23 @@ const PlayGame = () => {
           "Success!",
           "Your selection has been recorded!"
         );
-        setGameState((prev) => ({ ...prev, isWaitingForOthers: true }));
+        setIsWaitingForOthers(true);
       }
     }
   }, [
-    gameState.isTimerActive,
+    isTimerActive,
     timer,
-    gameState.isWaitingForOthers,
+    isWaitingForOthers,
+    isWritePending,
     isConfirming,
+    writeError,
+    receiptError,
     isConfirmed,
-    receiptError
   ]);
 
   //__________________________ Redirect Conditions________________________________
+
+
   useEffect(() => {
     // Check if we should redirect based on different conditions
     if (!pool) {
@@ -174,14 +177,25 @@ const PlayGame = () => {
     }
   }, [pool, hasClaimed, navigate, refetchPlayerStatus]);
 
+
+
+
+
+
+
   //____________________________ Handle player elimination_____________________________________________
 
   useEffect(() => {
     if (playerStatus) {
      
+      const isPlayerEliminated = playerStatus[1];
+      const isPlayerWinner = playerStatus[2];
+      const hasPlayerClaimed = playerStatus[3];
+
       // Update elimination status
-      if (isParticipant && isEliminatedStatus) {
-        setGameState((prev) => ({ ...prev, isEliminated: true, isTimerActive: false }));
+      if (isPlayerEliminated && !isEliminated) {
+        setIsEliminated(true);
+        setIsTimerActive(false);
         showNotification(
           false,
           "Eliminated",
@@ -194,13 +208,13 @@ const PlayGame = () => {
 
       // Update winner status
 
-      if (isParticipant && isWinnerStatus) {
+      if (isPlayerWinner && !isWinner) {
         setIsWinner(true);
         setShowWinnerPopup(true);
       }
 
-      
-      if (isEliminatedStatus && gameState.hasSubmitted && isWinnerStatus) {
+      // Handle claimed status
+      if (hasPlayerClaimed && isPlayerWinner) {
         navigate("/explore");
       }
 
@@ -209,9 +223,9 @@ const PlayGame = () => {
         setShowWinnerPopup(true);
       }
     }
-  }, [playerStatus, gameState.isEliminated, isWinner, showWinnerPopup, pool, navigate]);
+  }, [playerStatus, isEliminated, isWinner, showWinnerPopup, pool, navigate]);
 
-  //____________________________ Handle player winning the game_______________________________________
+  // Handle player winning the game
   useEffect(() => {
     if (isWinnerStatus && pool?.status === 2) {
       setIsWinner(true);
@@ -221,37 +235,35 @@ const PlayGame = () => {
 
   // Add a polling mechanism to ensure we get updates even if events fail
   useEffect(() => {
-    if (gameState.isWaitingForOthers) {
+    if (isWaitingForOthers) {
       const interval = setInterval(() => {
         refetchPlayerStatus();
       }, 5000);
 
       return () => clearInterval(interval);
     }
-  }, [gameState.isWaitingForOthers, refetchPlayerStatus]);
+  }, [isWaitingForOthers, refetchPlayerStatus]);
 
   // Handle player choice submission
-
   const handleMakeChoice = async (selected: PlayerChoice) => {
-    if (!gameState.isTimerActive || timer <= 2 || gameState.isEliminated || gameState.hasSubmitted) return;
+    if (!isTimerActive || timer <= 2 || isEliminated || hasSubmitted) return;
 
-    setGameState((prev) => ({ ...prev, selectedChoice: selected, hasSubmitted: true, isCoinFlipping: true }));
-    startCoinAnimation()
+    setSelectedChoice(selected);
+    setHasSubmitted(true);
+    startCoinAnimation();
     await handleSubmit(selected);
   };
 
-
   // ____________submitting the choice_____________________
 
-
- const handleSubmit = async (selected: PlayerChoice) => {
+  const handleSubmit = async (selected: PlayerChoice) => {
     if (!selected) {
       showNotification(false, "Error", "Please select HEADS or TAILS");
       return;
     }
 
     try {
-      setGameState((prev) => ({ ...prev, isSubmitting: true }));
+      setIsSubmitting(true);
       writeContract({
         address: CORE_CONTRACT_ADDRESS as `0x${string}`,
         abi: CoinTossABI.abi,
@@ -261,28 +273,30 @@ const PlayGame = () => {
     } catch (err: any) {
       const errorMessage = err.message || "Transaction failed";
       showNotification(false, "Transaction Error", errorMessage);
-      setGameState((prev) => ({ ...prev, isSubmitting: false }));
+      setIsSubmitting(false);
       stopCoinAnimation();
     }
   };
 
-
   // Handle transaction confirmation
   useEffect(() => {
     if (isConfirmed) {
-      setGameState((prev) => ({
-        ...prev,
-        isSubmitting: false,
-        isWaitingForOthers: true,
-      }));
+      setIsSubmitting(false);
+      setSelectedChoice(null);
       showNotification(true, "Success!", "Your selection has been recorded!");
+      setIsWaitingForOthers(true);
+      setIsTimerActive(false);
     }
-  
-    if (receiptError) {
-      setGameState((prev) => ({ ...prev, isSubmitting: false }));
-      showNotification(false, "Transaction Failed", "Your transaction failed to process.");
+
+    if (writeError || receiptError) {
+      setIsSubmitting(false);
+      showNotification(
+        false,
+        "Transaction Failed",
+        "Your transaction failed to process."
+      );
     }
-  }, [isConfirmed, receiptError]);
+  }, [isConfirmed, writeError, receiptError]);
 
   // Handle RoundCompleted event
 
@@ -350,10 +364,10 @@ const PlayGame = () => {
             stopCoinAnimation();
 
             // Update UI state to indicate processing
-            setGameState((prev) => ({ ...prev, isWaitingForOthers: false }));
+            setIsWaitingForOthers(false);
 
             // Determine if user survived based on their choice
-            const userChoice = gameState.selectedChoice;
+            const userChoice = selectedChoice;
             const userSurvived = userChoice === winningSelection;
 
             console.log("Round result:", {
@@ -364,7 +378,7 @@ const PlayGame = () => {
 
             // Update eliminated status immediately
             if (!userSurvived) {
-             setGameState((prev) => ({ ...prev, isEliminated: true }));
+              setIsEliminated(true);
             }
 
             // Force refresh player status from contract
@@ -385,11 +399,11 @@ const PlayGame = () => {
             if (userSurvived) {
               // Set timeout to allow notification to be seen
               setTimeout(() => {
-               setGameState((prev) => ({ ...prev, round: roundNumber + 1 }));
+                setRound(roundNumber + 1);
                 setTimer(20);
-                setGameState((prev) => ({ ...prev, isTimerActive: true }));
-                setGameState((prev) => ({ ...prev, hasSubmitted: false }));
-                setGameState((prev) => ({ ...prev, selectedChoice: null }));
+                setIsTimerActive(true);
+                setHasSubmitted(false);
+                setSelectedChoice(null);
               }, 3000);
             }
           }
@@ -436,9 +450,9 @@ const PlayGame = () => {
                 // Do NOT redirect winners - they need to claim their prize
 
                 // Update game state to reflect completion
-                setGameState((prev) => ({ ...prev, isTimerActive: false,isWaitingForOthers: false}));
+                setIsTimerActive(false);
                 setTimer(0);
-                
+                setIsWaitingForOthers(false);
 
                 // Show a notification that the game is complete and they won
                 showNotification(
@@ -479,7 +493,7 @@ const PlayGame = () => {
 
   // Start/stop coin animation
   const startCoinAnimation = () => {
-    setGameState((prev) => ({ ...prev, isCoinFlipping: true }));
+    setIsCoinFlipping(true);
     coinFlipInterval.current = setInterval(() => {
       setCoinRotation((prev) => (prev + 36) % 360);
     }, 100);
@@ -490,7 +504,7 @@ const PlayGame = () => {
       clearInterval(coinFlipInterval.current);
       coinFlipInterval.current = null;
     }
-    setGameState((prev) => ({ ...prev, isCoinFlipping: false }));
+    setIsCoinFlipping(false);
     setCoinRotation(0);
   };
 
@@ -518,29 +532,48 @@ const PlayGame = () => {
   }, [isWinnerStatus]);
 
   // Handle token claim
+  const handleClaimPrize = async () => {
+    try {
+      setIsSubmitting(true);
+      writeContract({
+        address: CORE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CoinTossABI.abi,
+        functionName: "claimPrize",
+        args: [BigInt(pool.id)],
+      });
+      showNotification(true, "Success!", "Your prize has been claimed!");
+      setShowWinnerPopup(false);
+      navigate("/explore");
+    } catch (err: any) {
+      const errorMessage = err.message || "Transaction failed";
+      showNotification(false, "Transaction Error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    // Handle token claim
-    const handleClaimPrize = async () => {
-      try {
-        setGameState((prev) => ({ ...prev, isSubmitting: true }));
-        writeContract({
-          address: CORE_CONTRACT_ADDRESS as `0x${string}`,
-          abi: CoinTossABI.abi,
-          functionName: "claimPrize",
-          args: [BigInt(pool.id)],
-        });
-        showNotification(true, "Success!", "Your prize has been claimed!");
-        setShowWinnerPopup(false);
-        navigate("/explore");
-      } catch (err: any) {
-        const errorMessage = err.message || "Transaction failed";
-        showNotification(false, "Transaction Error", errorMessage);
-      } finally {
-        setGameState((prev) => ({ ...prev, isSubmitting: false }));
-      }
-    };
-
-
+  if (showClaimInterface) {
+    return (
+      <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
+        <div className="p-8 rounded-xl border-4 border-green-500 bg-green-900 bg-opacity-90 text-center max-w-md">
+          <div className="text-6xl mb-4 text-green-400">🏆</div>
+          <h2 className="text-3xl font-bold text-white mb-2">
+            Congratulations Winner!
+          </h2>
+          <p className="text-xl text-green-300">
+            This pool has ended and you are a winner! Claim your prize now.
+          </p>
+          <button
+            onClick={handleClaimPrize}
+            disabled={isSubmitting}
+            className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
+          >
+            {isSubmitting ? "Claiming..." : "Claim Prize"}
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="h-screen bg-gray-950 flex flex-col items-center justify-center">
       {/* Top Game Status Bar */}
@@ -548,11 +581,11 @@ const PlayGame = () => {
         <div className="flex justify-between items-center bg-black bg-opacity-70 px-6 py-3 rounded-lg border border-gray-800 mb-8">
           <div className="flex items-center">
             <div className="bg-yellow-600 w-10 h-10 rounded-full flex items-center justify-center border border-yellow-500 mr-3">
-              <span className="text-white font-bold">{gameState.round}</span>
+              <span className="text-white font-bold">{round}</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="text-gray-400 text-xs">ROUND</div>
-              <div className="text-2xl font-bold text-yellow-500">{gameState.round}</div>
+              <div className="text-2xl font-bold text-yellow-500">{round}</div>
             </div>
           </div>
 
@@ -587,7 +620,7 @@ const PlayGame = () => {
       </div>
 
       {/* Coin Animation Area */}
-      {gameState.isCoinFlipping && (
+      {isCoinFlipping && (
         <div className="absolute z-10 h-48 w-48 flex items-center justify-center">
           <div
             className="w-32 h-32 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center text-4xl transform transition-all duration-100 border-4 border-yellow-300 shadow-lg"
@@ -603,22 +636,22 @@ const PlayGame = () => {
 
       <div className="flex flex-col md:flex-row gap-6 md:gap-12 justify-center items-center mb-10">
         <div className="relative">
-          {gameState.selectedChoice === PlayerChoice.HEADS && (
+          {selectedChoice === PlayerChoice.HEADS && (
             <div className="absolute -inset-3 bg-yellow-500 opacity-20 blur-xl rounded-full animate-pulse"></div>
           )}
           <button
             onClick={() => handleMakeChoice(PlayerChoice.HEADS)}
             className={`w-36 h-36 text-white rounded-full flex items-center justify-center transition-all transform hover:scale-105 ${
-              gameState.selectedChoice === PlayerChoice.HEADS
+              selectedChoice === PlayerChoice.HEADS
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={!gameState.isTimerActive || gameState.isCoinFlipping || gameState.isSubmitting}
+            disabled={!isTimerActive || isCoinFlipping || isSubmitting}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">🪙</div>
               <div className="text-xl font-bold">HEADS</div>
-              {gameState.selectedChoice === PlayerChoice.HEADS && (
+              {selectedChoice === PlayerChoice.HEADS && (
                 <div className="mt-2 text-yellow-500 text-sm font-bold animate-pulse">
                   SELECTED
                 </div>
@@ -636,22 +669,22 @@ const PlayGame = () => {
 
         {/* Tails Option */}
         <div className="relative">
-          {gameState.selectedChoice === PlayerChoice.TAILS && (
+          {selectedChoice === PlayerChoice.TAILS && (
             <div className="absolute -inset-3 bg-yellow-500 opacity-20 blur-xl rounded-full animate-pulse"></div>
           )}
           <button
             onClick={() => handleMakeChoice(PlayerChoice.TAILS)}
             className={`w-36 h-36 rounded-full flex items-center text-white justify-center transition-all transform hover:scale-105 ${
-              gameState.selectedChoice === PlayerChoice.TAILS
+              selectedChoice === PlayerChoice.TAILS
                 ? "border-4 border-yellow-500 bg-gradient-to-br from-yellow-900 to-yellow-950 shadow-glow-gold"
                 : "border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-yellow-600"
             }`}
-            disabled={!gameState.isTimerActive || gameState.isCoinFlipping || gameState.isSubmitting}
+            disabled={!isTimerActive || isCoinFlipping || isSubmitting}
           >
             <div className="text-center p-2">
               <div className="text-4xl mb-3">💰</div>
               <div className="text-xl font-bold">TAILS</div>
-              {gameState.selectedChoice === PlayerChoice.TAILS && (
+              {selectedChoice === PlayerChoice.TAILS && (
                 <div className="mt-2 text-yellow-500 text-sm font-bold animate-pulse">
                   SELECTED
                 </div>
@@ -732,7 +765,7 @@ const PlayGame = () => {
         </div>
       )}
 
-      {gameState.isWaitingForOthers && (
+      {isWaitingForOthers && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
           <div className="text-yellow-500 text-lg font-bold">
             Waiting for other players to make their selections...
@@ -753,10 +786,10 @@ const PlayGame = () => {
             </p>
             <button
               onClick={handleClaimPrize}
-              disabled={gameState.isSubmitting}
+              disabled={isSubmitting}
               className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
             >
-              {gameState.isSubmitting ? "Claiming..." : "Claim Prize"}
+              {isSubmitting ? "Claiming..." : "Claim Prize"}
             </button>
           </div>
         </div>
