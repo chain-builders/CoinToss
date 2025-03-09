@@ -1,13 +1,12 @@
-import { useState, useEffect,  useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Footer from "../components/Footer";
-import  {formatTime} from "../utils/utilFunction"
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { formatTime } from "../utils/utilFunction";
 const HeroPage = () => {
-  const [time, setTimer]=useState(0)
+  const [time, setTimer] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(222);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-
 
   const startTimer = () => {
     intervalRef.current = setInterval(() => {
@@ -36,11 +35,6 @@ const HeroPage = () => {
       }
     };
   }, []);
-
-
-
-
-
 
   return (
     <>
@@ -81,8 +75,6 @@ const HeroPage = () => {
               . The fewer people who make your choice, the bigger your prize.
             </p>
 
-          
-
             {/* Win Metrics - Creating FOMO */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg border border-gray-800">
@@ -92,15 +84,50 @@ const HeroPage = () => {
                 <div className="text-xs text-gray-400">WON IN LAST POOL </div>
               </div>
               <div className="bg-black bg-opacity-70 px-4 py-2 rounded-lg border border-gray-800">
-                <div className="text-2xl font-bold text-yellow-500">{formatTime(timeRemaining)}</div>
+                <div className="text-2xl font-bold text-yellow-500">
+                  {formatTime(timeRemaining)}
+                </div>
                 <div className="text-xs text-gray-400">NEXT POOL STARTS IN</div>
               </div>
             </div>
 
-            <div className="pt-6">
-              <button className="bg-gradient-to-r from-yellow-600 to-red-600 text-white px-8 py-3 rounded-lg font-medium text-lg hover:shadow-glow-gold transition-all duration-300 transform hover:scale-105">
-                PLAY NOW
-              </button>
+            <div className="pt-6 w-40 ">
+              {/* <div className="bg-gradient-to-r  from-yellow-600 to-red-600 px-4 py-2 rounded-lg border border-yellow-600 shadow-sm hover:shadow-glow-gold transition-all duration-300"> */}
+                <ConnectButton.Custom>
+                  {({
+                    account,
+                    openAccountModal,
+                    openConnectModal,
+                    mounted,
+                  }) => {
+                    const connected = mounted && account;
+
+                    return (
+                      <div>
+                        {connected ? (
+                          <button
+                            onClick={openAccountModal}
+                            className="flex items-center"
+                          >
+                            <span className="text-white font-bold pl-[20px] bg-gradient-to-r  from-yellow-600 to-red-600 px-4 py-2 rounded-lg border border-yellow-600 shadow-sm hover:shadow-glow-gold transition-all duration-300">
+                              {account.displayName}
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={openConnectModal}
+                            className="flex items-center"
+                          >
+                            <span className="text-white font-bold pl-[15px] bg-gradient-to-r  from-yellow-600 to-red-600 px-4 py-2 rounded-lg border border-yellow-600 shadow-sm hover:shadow-glow-gold transition-all duration-300">
+                              PLAY NOW
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }}
+                </ConnectButton.Custom>
+              {/* </div> */}
             </div>
           </div>
 

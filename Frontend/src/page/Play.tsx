@@ -28,7 +28,7 @@ const PlayGame = () => {
     null
   );
   const [round, setRound] = useState(1);
-  const [timer, setTimer] = useState(20);
+  const [timer, setTimer] = useState(40);
   const [isEliminated, setIsEliminated] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
