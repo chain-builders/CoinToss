@@ -129,7 +129,7 @@ function claimWinnings(uint256 poolId) external;
 ---
 ## Pitch Deck
 
-[Watch the demo](https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit#slide=id.p)
+[View pitch deck](https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit#slide=id.p)
 
 ## **Contributions**
 We welcome community contributions! Feel free to **submit issues, pull requests, or suggestions** for improving TheOnePercent.
