@@ -52,6 +52,19 @@ This game is designed to be **fair, transparent, and fully decentralized**, runn
 
 ---
 
+### **Setup & Run Frontend**
+```sh
+# Clone the repository
+git clone https://github.com/chain-builders/CoinToss.git
+```
+# Install dependencies
+cd frontend
+npm install
+
+# Start the development server
+npm run dev
+---
+
 ## **Setup & Deployment**
 ### **Smart Contract (Foundry)**
 ```sh
@@ -60,15 +73,6 @@ forge build
 forge test
 forge script script/Deploy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
 ```
-
-### **Frontend Setup**
-```sh
-cd frontend
-npm install
-npm run dev
-```
-
----
 
 ## **Interacting with the Contract**
 ### **Key Functions**
@@ -121,15 +125,15 @@ function claimWinnings(uint256 poolId) external;
 ## Contract Address:
 **0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070**
 
-[View on Block Explorer](https://scan.test2.btcs.network/address/0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070)
+https://scan.test2.btcs.network/address/0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D8070
 ---
 ## Demo Video
 
-[(https://www.loom.com/share/e26754cf31d64aaca7ff7ceabd411bd7)]
+https://www.loom.com/share/e26754cf31d64aaca7ff7ceabd411bd7
 ---
 ## Pitch Deck
 
-[(https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit#slide=id.p)]
+https://docs.google.com/presentation/d/1OPzRYOiFz6UGImva1qmiFbs8aGZGrnuZWR7LY--6FcY/edit#slide=id.p
 
 ## **Contributions**
 We welcome community contributions! Feel free to **submit issues, pull requests, or suggestions** for improving TheOnePercent.
