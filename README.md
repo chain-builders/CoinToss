@@ -129,7 +129,7 @@ https://scan.test2.btcs.network/address/0xA3c7dc41A46ca489FdeA4Ca4D43760d45e1D80
 ---
 ## Demo Video
 
-[(https://www.loom.com/share/e26754cf31d64aaca7ff7ceabd411bd7)]
+https://www.loom.com/share/e26754cf31d64aaca7ff7ceabd411bd7
 ---
 ## Pitch Deck
 
