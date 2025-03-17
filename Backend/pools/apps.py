@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from .listener import start_event_listener
+from .http_scheduler import start_http_scheduler
 #from asgiref.sync import async_to_sync
 
 
@@ -8,4 +8,4 @@ class PoolsConfig(AppConfig):
     name = 'pools'
 
     def ready(self):
-        start_event_listener()
+        start_http_scheduler()
