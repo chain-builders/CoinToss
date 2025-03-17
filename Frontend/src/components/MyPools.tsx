@@ -3,7 +3,7 @@ import { useState } from "react";
 const RenderGameView = () =>{
     const [choice, setChoice] = useState<string | null>(null);
     const [round, setRound] = useState(1);
-    const [_showGameView, setShowGameView] = useState<boolean>(false);
+    const [showGameView, setShowGameView] = useState<boolean>(false);
 
 
    
